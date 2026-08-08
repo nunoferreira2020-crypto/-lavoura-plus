@@ -906,13 +906,16 @@ app.addEventListener('click', async event => {
 
   else if (
     action === 'secagem' ||
-    action === 'parto' ||
-    action === 'inseminacao'
+    action === 'parto'
   ) {
     alert(
       'Botão preparado. No próximo passo vamos guardar este registo no Supabase.'
     )
   }
+  
+  else if (action === 'inseminacao') {
+  alert('Vamos registar uma nova inseminação.')
+}
 })
 
 /* ARRANQUE */
