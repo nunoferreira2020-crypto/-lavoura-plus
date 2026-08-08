@@ -44,18 +44,26 @@ const cows = [
 
 const app = document.querySelector('#app')
 
+let voltarDetalhe = 'animais'
+
 function ptDate(data) {
   const [d, m, y] = data.split('/')
   return new Date(Number(y), Number(m) - 1, Number(d))
 }
 
 function hoje() {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const agora = new Date()
+  return new Date(
+    agora.getFullYear(),
+    agora.getMonth(),
+    agora.getDate()
+  )
 }
 
 function diasAte(data) {
-  return Math.round((ptDate(data) - hoje()) / 86400000)
+  return Math.round(
+    (ptDate(data).getTime() - hoje().getTime()) / 86400000
+  )
 }
 
 function textoDias(dias) {
@@ -68,27 +76,27 @@ function textoDias(dias) {
 function obterAlertas() {
   const eventos = []
 
-  cows.forEach(c => {
-    const ds = diasAte(c.secagem)
-    const dp = diasAte(c.parto)
+  cows.forEach(vaca => {
+    const diasSecagem = diasAte(vaca.secagem)
+    const diasParto = diasAte(vaca.parto)
 
-    if (ds >= -7 && ds <= 30) {
+    if (diasSecagem >= -7 && diasSecagem <= 30) {
       eventos.push({
         tipo: 'Secagem',
         icon: '🟠',
-        data: c.secagem,
-        dias: ds,
-        vaca: c
+        data: vaca.secagem,
+        dias: diasSecagem,
+        vaca
       })
     }
 
-    if (dp >= -7 && dp <= 30) {
+    if (diasParto >= -7 && diasParto <= 30) {
       eventos.push({
         tipo: 'Parto',
         icon: '🔵',
-        data: c.parto,
-        dias: dp,
-        vaca: c
+        data: vaca.parto,
+        dias: diasParto,
+        vaca
       })
     }
   })
@@ -97,7 +105,7 @@ function obterAlertas() {
 }
 
 function inicio() {
-  const alertas = obterAlertas()
+  const eventos = obterAlertas()
 
   app.innerHTML = `
     <main class="app">
@@ -108,31 +116,48 @@ function inicio() {
 
       <section class="card">
         <h2>🔔 Alertas</h2>
-        <p><strong>${alertas.length}</strong> eventos importantes</p>
-        <button id="verAlertas">Ver alertas</button>
+        <p>
+          <strong>${eventos.length}</strong>
+          eventos importantes
+        </p>
+
+        <button data-action="alertas">
+          Ver alertas
+        </button>
       </section>
 
       <section class="card">
         <h2>🐄 Vacas</h2>
-        <p><strong>${cows.length} animais</strong> registados</p>
-        <p>Gestão do efetivo e informação reprodutiva.</p>
-        <button id="animais">Ver animais</button>
+
+        <p>
+          <strong>${cows.length} animais</strong>
+          registados
+        </p>
+
+        <p>
+          Gestão do efetivo e informação reprodutiva.
+        </p>
+
+        <button data-action="animais">
+          Ver animais
+        </button>
       </section>
 
       <section class="card">
         <h2>🥛 Produção</h2>
-        <p>Registo e acompanhamento da produção de leite.</p>
+        <p>
+          Registo e acompanhamento da produção de leite.
+        </p>
       </section>
 
       <section class="card">
         <h2>📅 Reprodução</h2>
-        <p>Inseminações, diagnósticos, secagens e partos.</p>
+        <p>
+          Inseminações, diagnósticos, secagens e partos.
+        </p>
       </section>
     </main>
   `
-
-  document.querySelector('#animais').onclick = animais
-  document.querySelector('#verAlertas').onclick = alertas
 }
 
 function alertas() {
@@ -140,50 +165,101 @@ function alertas() {
 
   app.innerHTML = `
     <main class="app">
-      <button class="back" id="voltar">← Voltar</button>
+
+      <button
+        class="back"
+        data-action="inicio"
+      >
+        ← Voltar
+      </button>
+
       <h1>🔔 Alertas</h1>
-      <p class="subtitle">Próximos 30 dias</p>
+
+      <p class="subtitle">
+        Próximos 30 dias
+      </p>
 
       <div>
+
         ${
           eventos.length
-            ? eventos.map(e => `
-              <section class="cow-card alerta" data-id="${e.vaca.id}">
+            ? eventos.map(evento => `
+              
+              <section
+                class="cow-card alerta"
+                data-action="detalhe"
+                data-id="${evento.vaca.id}"
+                data-voltar="alertas"
+              >
+
                 <div>
-                  <strong>${e.icon} ${e.tipo}</strong>
-                  <div>🐄 ${e.vaca.id}</div>
-                  <div class="muted">${e.vaca.raca}</div>
+
+                  <strong>
+                    ${evento.icon}
+                    ${evento.tipo}
+                  </strong>
+
+                  <div>
+                    🐄 ${evento.vaca.id}
+                  </div>
+
+                  <div class="muted">
+                    ${evento.vaca.raca}
+                  </div>
+
                 </div>
 
                 <div class="right">
-                  <strong>${e.data}</strong>
-                  <div class="${e.dias <= 3 ? 'urgente' : 'muted'}">
-                    ${textoDias(e.dias)}
+
+                  <strong>
+                    ${evento.data}
+                  </strong>
+
+                  <div class="${
+                    evento.dias <= 3
+                      ? 'urgente'
+                      : 'muted'
+                  }">
+                    ${textoDias(evento.dias)}
                   </div>
+
                 </div>
+
               </section>
+
             `).join('')
-            : `<section class="card">
-                <strong>✅ Sem alertas para os próximos 30 dias.</strong>
-               </section>`
+
+            : `
+              <section class="card">
+                <strong>
+                  ✅ Sem alertas para os próximos 30 dias.
+                </strong>
+              </section>
+            `
         }
+
       </div>
+
     </main>
   `
-
-  document.querySelector('#voltar').onclick = inicio
-
-  document.querySelectorAll('.alerta').forEach(el => {
-    el.onclick = () => detalhe(el.dataset.id)
-  })
 }
 
 function animais() {
   app.innerHTML = `
     <main class="app">
-      <button class="back" id="voltar">← Voltar</button>
+
+      <button
+        class="back"
+        data-action="inicio"
+      >
+        ← Voltar
+      </button>
+
       <h1>🐄 Animais</h1>
-      <p class="subtitle">${cows.length} vacas</p>
+
+      <p class="subtitle">
+        ${cows.length} vacas
+      </p>
 
       <input
         id="pesquisa"
@@ -192,68 +268,198 @@ function animais() {
       >
 
       <div id="lista"></div>
+
     </main>
   `
 
-  document.querySelector('#voltar').onclick = inicio
-
-  const pesquisa = document.querySelector('#pesquisa')
-  pesquisa.oninput = () => listar(pesquisa.value)
-
   listar('')
-}
 
-function listar(texto) {
-  const q = texto.toLowerCase().trim()
+  const pesquisa =
+    document.querySelector('#pesquisa')
 
-  const resultado = cows.filter(c =>
-    `${c.id} ${c.touro} ${c.raca}`.toLowerCase().includes(q)
-  )
-
-  document.querySelector('#lista').innerHTML = resultado.map(c => `
-    <section class="cow-card" data-id="${c.id}">
-      <div>
-        <strong>🐄 ${c.id}</strong>
-        <div class="muted">${c.raca}</div>
-        <div class="muted">Touro: ${c.touro}</div>
-      </div>
-
-      <div class="right">
-        <strong>Parto</strong>
-        <div>${c.parto}</div>
-      </div>
-    </section>
-  `).join('')
-
-  document.querySelectorAll('.cow-card').forEach(el => {
-    el.onclick = () => detalhe(el.dataset.id)
+  pesquisa.addEventListener('input', e => {
+    listar(e.target.value)
   })
 }
 
-function detalhe(id) {
-  const c = cows.find(v => v.id === id)
+function listar(texto) {
+  const lista =
+    document.querySelector('#lista')
+
+  const q =
+    texto.toLowerCase().trim()
+
+  const resultado =
+    cows.filter(vaca => {
+
+      const textoVaca = `
+        ${vaca.id}
+        ${vaca.touro}
+        ${vaca.raca}
+      `.toLowerCase()
+
+      return textoVaca.includes(q)
+    })
+
+  lista.innerHTML =
+    resultado.map(vaca => `
+
+      <section
+        class="cow-card"
+        data-action="detalhe"
+        data-id="${vaca.id}"
+        data-voltar="animais"
+      >
+
+        <div>
+
+          <strong>
+            🐄 ${vaca.id}
+          </strong>
+
+          <div class="muted">
+            ${vaca.raca}
+          </div>
+
+          <div class="muted">
+            Touro: ${vaca.touro}
+          </div>
+
+        </div>
+
+        <div class="right">
+
+          <strong>
+            Parto
+          </strong>
+
+          <div>
+            ${vaca.parto}
+          </div>
+
+        </div>
+
+      </section>
+
+    `).join('')
+}
+
+function detalhe(id, voltar = 'animais') {
+
+  const vaca =
+    cows.find(v => v.id === id)
+
+  if (!vaca) {
+    inicio()
+    return
+  }
+
+  voltarDetalhe = voltar
 
   app.innerHTML = `
     <main class="app">
-      <button class="back" id="voltar">← Animais</button>
+
+      <button
+        class="back"
+        data-action="voltar-detalhe"
+      >
+        ← Voltar
+      </button>
 
       <section class="card hero">
-        <p class="muted">Animal</p>
-        <h1>🐄 ${c.id}</h1>
-        <p>${c.raca}</p>
+
+        <p class="muted">
+          Animal
+        </p>
+
+        <h1>
+          🐄 ${vaca.id}
+        </h1>
+
+        <p>
+          ${vaca.raca}
+        </p>
+
       </section>
 
       <section class="card details">
-        <div><span>Última IA</span><strong>${c.ia}</strong></div>
-        <div><span>Touro</span><strong>${c.touro}</strong></div>
-        <div><span>Raça</span><strong>${c.raca}</strong></div>
-        <div><span>Parto previsto</span><strong>${c.parto}</strong></div>
-        <div><span>Secagem</span><strong>${c.secagem}</strong></div>
+
+        <div>
+          <span>Última IA</span>
+          <strong>${vaca.ia}</strong>
+        </div>
+
+        <div>
+          <span>Touro</span>
+          <strong>${vaca.touro}</strong>
+        </div>
+
+        <div>
+          <span>Raça</span>
+          <strong>${vaca.raca}</strong>
+        </div>
+
+        <div>
+          <span>Parto previsto</span>
+          <strong>${vaca.parto}</strong>
+        </div>
+
+        <div>
+          <span>Secagem</span>
+          <strong>${vaca.secagem}</strong>
+        </div>
+
       </section>
+
     </main>
   `
-
-  document.querySelector('#voltar').onclick = animais
 }
+
+/* CONTROLO CENTRAL DOS CLIQUES */
+
+app.addEventListener('click', event => {
+
+  const elemento =
+    event.target.closest('[data-action]')
+
+  if (!elemento) return
+
+  const action =
+    elemento.dataset.action
+
+  if (action === 'inicio') {
+    inicio()
+    return
+  }
+
+  if (action === 'animais') {
+    animais()
+    return
+  }
+
+  if (action === 'alertas') {
+    alertas()
+    return
+  }
+
+  if (action === 'detalhe') {
+
+    detalhe(
+      elemento.dataset.id,
+      elemento.dataset.voltar
+    )
+
+    return
+  }
+
+  if (action === 'voltar-detalhe') {
+
+    if (voltarDetalhe === 'alertas') {
+      alertas()
+    } else {
+      animais()
+    }
+  }
+})
 
 inicio()
