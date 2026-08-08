@@ -1,58 +1,31 @@
 import './style.css'
+import { createClient } from '@supabase/supabase-js'
 
-const cows = [
-  ["6358","02/08/2025","SUITOR","Frísia","12/05/2026","13/03/2026"],
-  ["3546","15/08/2025","OLCROSS","Limousine","25/05/2026","26/03/2026"],
-  ["6359","17/09/2025","BOERO","Frísia","27/06/2026","28/04/2026"],
-  ["434499700","20/09/2025","RED ZAMARI","Aberdeen Angus","30/06/2026","01/05/2026"],
-  ["633206810","23/09/2025","RED ZAMARI","Aberdeen Angus","03/07/2026","04/05/2026"],
-  ["4444","18/10/2025","QUINTA B27","Beefmaster","28/07/2026","29/05/2026"],
-  ["8662","08/11/2025","IMPERIAL","Aberdeen Angus","18/08/2026","19/06/2026"],
-  ["3204","14/12/2025","IMPERIAL","Aberdeen Angus","23/09/2026","25/07/2026"],
-  ["5803","28/12/2025","REAPER","Frísia","07/10/2026","08/08/2026"],
-  ["8660","05/01/2026","HARQUE","Frísia","15/10/2026","16/08/2026"],
-  ["1314","26/01/2026","GLORY ROAD","Aberdeen Angus","05/11/2026","06/09/2026"],
-  ["9980","18/02/2026","GLORY ROAD","Aberdeen Angus","28/11/2026","29/09/2026"],
-  ["7713","28/02/2026","ABSOLUTE RED","Aberdeen Angus","08/12/2026","09/10/2026"],
-  ["3550","05/03/2026","REAPER","Frísia","13/12/2026","14/10/2026"],
-  ["633199112","22/03/2026","SKYDIVER","Frísia","30/12/2026","31/10/2026"],
-  ["6811","07/04/2026","HOLY P","Frísia","15/01/2027","16/11/2026"],
-  ["3865","10/04/2026","JULIUS","Jersey","18/01/2027","19/11/2026"],
-  ["4689","13/04/2026","HOA P","Frísia","21/01/2027","22/11/2026"],
-  ["3233","13/04/2026","VALENTINO","Frísia","21/01/2027","22/11/2026"],
-  ["AIROLO","18/04/2026","ILUSION","Aberdeen Angus","26/01/2027","27/11/2026"],
-  ["3226","18/04/2026","ILUSION","Aberdeen Angus","26/01/2027","27/11/2026"],
-  ["433144281","02/05/2026","KERSH","Frísia","09/02/2027","11/12/2026"],
-  ["633744688","04/05/2026","ILUSION","Aberdeen Angus","11/02/2027","13/12/2026"],
-  ["6356","07/05/2026","ABSOLUTE RED","Aberdeen Angus","14/02/2027","16/12/2026"],
-  ["9975","12/05/2026","BOSTON RED","Aberdeen Angus","19/02/2027","21/12/2026"],
-  ["334629211","14/05/2026","ILUSION","Aberdeen Angus","21/02/2027","23/12/2026"],
-  ["3868","15/05/2026","ODEM","Frísia","22/02/2027","24/12/2026"],
-  ["134629212","29/05/2026","ILUSION","Aberdeen Angus","08/03/2027","07/01/2027"],
-  ["3544","05/06/2026","BOSTON RED","Aberdeen Angus","15/03/2027","14/01/2027"],
-  ["6445","15/06/2026","KAREEM","Frísia","25/03/2027","24/01/2027"],
-  ["633144280","26/06/2026","VALENTINO","Frísia","05/04/2027","04/02/2027"],
-  ["5800","05/07/2026","ILUSION","Aberdeen Angus","14/04/2027","13/02/2027"]
-].map(v => ({
-  id: v[0],
-  ia: v[1],
-  touro: v[2],
-  raca: v[3],
-  parto: v[4],
-  secagem: v[5]
-}))
+const SUPABASE_URL = 'https://oegbnvwwrudnskycgbdl.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_b86gGWtrtFM2MVhU_-h10g_5vttckRp'
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true
+  }
+})
 
 const app = document.querySelector('#app')
 
+let cows = []
 let voltarDetalhe = 'animais'
 
-function ptDate(data) {
-  const [d, m, y] = data.split('/')
-  return new Date(Number(y), Number(m) - 1, Number(d))
+function formatDate(data) {
+  if (!data) return '—'
+
+  const [ano, mes, dia] = data.split('-')
+  return `${dia}/${mes}/${ano}`
 }
 
 function hoje() {
   const agora = new Date()
+
   return new Date(
     agora.getFullYear(),
     agora.getMonth(),
@@ -61,61 +34,452 @@ function hoje() {
 }
 
 function diasAte(data) {
+  if (!data) return 9999
+
+  const [ano, mes, dia] = data.split('-')
+
+  const destino = new Date(
+    Number(ano),
+    Number(mes) - 1,
+    Number(dia)
+  )
+
   return Math.round(
-    (ptDate(data).getTime() - hoje().getTime()) / 86400000
+    (destino.getTime() - hoje().getTime()) /
+    86400000
   )
 }
 
 function textoDias(dias) {
-  if (dias < 0) return `${Math.abs(dias)} dias atrasado`
+  if (dias < 0) {
+    return `${Math.abs(dias)} dias atrasado`
+  }
+
   if (dias === 0) return 'HOJE'
   if (dias === 1) return 'AMANHÃ'
+
   return `em ${dias} dias`
 }
+
+/* LOGIN */
+
+function loginScreen(mensagem = '') {
+  app.innerHTML = `
+    <main class="app">
+
+      <h1>🐄 Lavoura+</h1>
+      <p class="subtitle">Acesso seguro</p>
+
+      <section class="card">
+
+        <h2>Entrar</h2>
+
+        <p>
+          Entre na sua conta para aceder
+          aos dados da exploração.
+        </p>
+
+        <input
+          id="email"
+          class="search"
+          type="email"
+          placeholder="Email"
+          autocomplete="email"
+        >
+
+        <input
+          id="password"
+          class="search"
+          type="password"
+          placeholder="Palavra-passe"
+          autocomplete="current-password"
+        >
+
+        <button
+          data-action="login"
+        >
+          Entrar
+        </button>
+
+        <p
+          id="loginMsg"
+          class="muted"
+        >
+          ${mensagem}
+        </p>
+
+      </section>
+
+    </main>
+  `
+}
+
+async function login() {
+  const email =
+    document.querySelector('#email').value.trim()
+
+  const password =
+    document.querySelector('#password').value
+
+  const msg =
+    document.querySelector('#loginMsg')
+
+  if (!email || !password) {
+    msg.textContent =
+      'Introduza email e palavra-passe.'
+    return
+  }
+
+  msg.textContent = 'A entrar…'
+
+  const { error } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+  if (error) {
+    msg.textContent =
+      'Email ou palavra-passe incorretos.'
+    return
+  }
+
+  await verificarSeguranca()
+}
+
+/* 2FA */
+
+async function verificarSeguranca() {
+  app.innerHTML = `
+    <main class="app">
+      <section class="card">
+        <h2>🔐 A verificar segurança…</h2>
+      </section>
+    </main>
+  `
+
+  const { data, error } =
+    await supabase.auth.mfa
+      .getAuthenticatorAssuranceLevel()
+
+  if (error) {
+    loginScreen('Erro ao verificar segurança.')
+    return
+  }
+
+  if (data.currentLevel === 'aal2') {
+    await carregarDados()
+    return
+  }
+
+  if (data.nextLevel === 'aal2') {
+    await pedirCodigo2FA()
+    return
+  }
+
+  app.innerHTML = `
+    <main class="app">
+
+      <h1>🔐 Segurança</h1>
+
+      <section class="card">
+
+        <h2>2FA necessário</h2>
+
+        <p>
+          Esta conta ainda não tem
+          autenticação de dois fatores
+          disponível.
+        </p>
+
+        <button data-action="logout">
+          Sair
+        </button>
+
+      </section>
+
+    </main>
+  `
+}
+
+async function pedirCodigo2FA() {
+  const { data, error } =
+    await supabase.auth.mfa.listFactors()
+
+  if (error) {
+    loginScreen('Não foi possível verificar o 2FA.')
+    return
+  }
+
+  const factor =
+    data.totp?.find(
+      f => f.status === 'verified'
+    )
+
+  if (!factor) {
+    app.innerHTML = `
+      <main class="app">
+
+        <h1>🔐 Segurança</h1>
+
+        <section class="card">
+          <p>
+            Não foi encontrado um autenticador
+            2FA verificado.
+          </p>
+
+          <button data-action="logout">
+            Sair
+          </button>
+        </section>
+
+      </main>
+    `
+    return
+  }
+
+  app.innerHTML = `
+    <main class="app">
+
+      <h1>🔐 Verificação</h1>
+
+      <section class="card">
+
+        <h2>Código de segurança</h2>
+
+        <p>
+          Abra o Google Authenticator
+          e introduza o código atual.
+        </p>
+
+        <input
+          id="codigo2fa"
+          class="search"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="000000"
+          autocomplete="one-time-code"
+        >
+
+        <button
+          data-action="confirmar-2fa"
+          data-factor="${factor.id}"
+        >
+          Continuar
+        </button>
+
+        <p
+          id="mfaMsg"
+          class="muted"
+        ></p>
+
+      </section>
+
+    </main>
+  `
+}
+
+async function confirmar2FA(factorId) {
+  const codigo =
+    document.querySelector('#codigo2fa')
+      .value.trim()
+
+  const msg =
+    document.querySelector('#mfaMsg')
+
+  if (!/^\d{6}$/.test(codigo)) {
+    msg.textContent =
+      'Introduza o código de 6 dígitos.'
+    return
+  }
+
+  msg.textContent = 'A verificar…'
+
+  const challenge =
+    await supabase.auth.mfa.challenge({
+      factorId
+    })
+
+  if (challenge.error) {
+    msg.textContent =
+      'Erro ao criar verificação.'
+    return
+  }
+
+  const verify =
+    await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.data.id,
+      code: codigo
+    })
+
+  if (verify.error) {
+    msg.textContent =
+      'Código incorreto ou expirado.'
+    return
+  }
+
+  await carregarDados()
+}
+
+/* DADOS REAIS DO SUPABASE */
+
+async function carregarDados() {
+  app.innerHTML = `
+    <main class="app">
+      <section class="card">
+        <h2>🐄 A carregar a exploração…</h2>
+      </section>
+    </main>
+  `
+
+  const animals =
+    await supabase
+      .from('animals')
+      .select(`
+        id,
+        number,
+        breed,
+        status,
+        notes
+      `)
+      .order('number')
+
+  if (animals.error) {
+    erroDados(animals.error.message)
+    return
+  }
+
+  const reproduction =
+    await supabase
+      .from('reproduction')
+      .select(`
+        animal_id,
+        event_date,
+        bull,
+        semen_type,
+        result,
+        expected_calving,
+        expected_dry_off,
+        notes,
+        created_at
+      `)
+      .order('event_date', {
+        ascending: false
+      })
+
+  if (reproduction.error) {
+    erroDados(reproduction.error.message)
+    return
+  }
+
+  cows = animals.data.map(animal => {
+    const repro =
+      reproduction.data.find(
+        r => r.animal_id === animal.id
+      )
+
+    return {
+      uuid: animal.id,
+      id: animal.number,
+      raca: animal.breed || '—',
+      status: animal.status,
+      ia: repro?.event_date || null,
+      touro: repro?.bull || '—',
+      parto: repro?.expected_calving || null,
+      secagem: repro?.expected_dry_off || null,
+      notas: animal.notes || ''
+    }
+  })
+
+  inicio()
+}
+
+function erroDados(texto) {
+  app.innerHTML = `
+    <main class="app">
+
+      <h1>⚠️ Lavoura+</h1>
+
+      <section class="card">
+
+        <h2>Não foi possível abrir os dados</h2>
+
+        <p class="muted">
+          ${texto}
+        </p>
+
+        <button data-action="tentar-novamente">
+          Tentar novamente
+        </button>
+
+      </section>
+
+    </main>
+  `
+}
+
+/* ALERTAS */
 
 function obterAlertas() {
   const eventos = []
 
   cows.forEach(vaca => {
-    const diasSecagem = diasAte(vaca.secagem)
-    const diasParto = diasAte(vaca.parto)
+    const ds = diasAte(vaca.secagem)
+    const dp = diasAte(vaca.parto)
 
-    if (diasSecagem >= -7 && diasSecagem <= 30) {
+    if (vaca.secagem &&
+        ds >= -7 &&
+        ds <= 30) {
+
       eventos.push({
         tipo: 'Secagem',
         icon: '🟠',
         data: vaca.secagem,
-        dias: diasSecagem,
+        dias: ds,
         vaca
       })
     }
 
-    if (diasParto >= -7 && diasParto <= 30) {
+    if (vaca.parto &&
+        dp >= -7 &&
+        dp <= 30) {
+
       eventos.push({
         tipo: 'Parto',
         icon: '🔵',
         data: vaca.parto,
-        dias: diasParto,
+        dias: dp,
         vaca
       })
     }
   })
 
-  return eventos.sort((a, b) => a.dias - b.dias)
+  return eventos.sort(
+    (a, b) => a.dias - b.dias
+  )
 }
+
+/* INÍCIO */
 
 function inicio() {
   const eventos = obterAlertas()
 
   app.innerHTML = `
     <main class="app">
+
       <h1>🐄 Lavoura+</h1>
-      <p class="subtitle">Gestão da Exploração</p>
+
+      <p class="subtitle">
+        Gestão da Exploração
+      </p>
 
       <h2>Painel Principal</h2>
 
       <section class="card">
+
         <h2>🔔 Alertas</h2>
+
         <p>
           <strong>${eventos.length}</strong>
           eventos importantes
@@ -124,9 +488,11 @@ function inicio() {
         <button data-action="alertas">
           Ver alertas
         </button>
+
       </section>
 
       <section class="card">
+
         <h2>🐄 Vacas</h2>
 
         <p>
@@ -134,31 +500,53 @@ function inicio() {
           registados
         </p>
 
-        <p>
-          Gestão do efetivo e informação reprodutiva.
-        </p>
-
         <button data-action="animais">
           Ver animais
         </button>
+
       </section>
 
       <section class="card">
+
         <h2>🥛 Produção</h2>
+
         <p>
-          Registo e acompanhamento da produção de leite.
+          Registo e acompanhamento
+          da produção de leite.
         </p>
+
       </section>
 
       <section class="card">
+
         <h2>📅 Reprodução</h2>
+
         <p>
-          Inseminações, diagnósticos, secagens e partos.
+          Inseminações, diagnósticos,
+          secagens e partos.
         </p>
+
       </section>
+
+      <section class="card">
+
+        <h2>🔐 Conta</h2>
+
+        <p>
+          Sessão protegida com 2FA.
+        </p>
+
+        <button data-action="logout">
+          Sair
+        </button>
+
+      </section>
+
     </main>
   `
 }
+
+/* LISTA DE ALERTAS */
 
 function alertas() {
   const eventos = obterAlertas()
@@ -179,12 +567,10 @@ function alertas() {
         Próximos 30 dias
       </p>
 
-      <div>
+      ${
+        eventos.length
+          ? eventos.map(evento => `
 
-        ${
-          eventos.length
-            ? eventos.map(evento => `
-              
               <section
                 class="cow-card alerta"
                 data-action="detalhe"
@@ -212,7 +598,7 @@ function alertas() {
                 <div class="right">
 
                   <strong>
-                    ${evento.data}
+                    ${formatDate(evento.data)}
                   </strong>
 
                   <div class="${
@@ -229,20 +615,19 @@ function alertas() {
 
             `).join('')
 
-            : `
-              <section class="card">
-                <strong>
-                  ✅ Sem alertas para os próximos 30 dias.
-                </strong>
-              </section>
-            `
-        }
-
-      </div>
+          : `
+            <section class="card">
+              ✅ Sem alertas para os
+              próximos 30 dias.
+            </section>
+          `
+      }
 
     </main>
   `
 }
+
+/* ANIMAIS */
 
 function animais() {
   app.innerHTML = `
@@ -264,7 +649,7 @@ function animais() {
       <input
         id="pesquisa"
         class="search"
-        placeholder="Pesquisar número, touro ou raça…"
+        placeholder="Pesquisar vaca, touro ou raça…"
       >
 
       <div id="lista"></div>
@@ -274,34 +659,26 @@ function animais() {
 
   listar('')
 
-  const pesquisa =
-    document.querySelector('#pesquisa')
-
-  pesquisa.addEventListener('input', e => {
-    listar(e.target.value)
-  })
+  document
+    .querySelector('#pesquisa')
+    .addEventListener('input', e => {
+      listar(e.target.value)
+    })
 }
 
 function listar(texto) {
-  const lista =
-    document.querySelector('#lista')
-
   const q =
     texto.toLowerCase().trim()
 
   const resultado =
-    cows.filter(vaca => {
+    cows.filter(vaca =>
+      `${vaca.id} ${vaca.touro} ${vaca.raca}`
+        .toLowerCase()
+        .includes(q)
+    )
 
-      const textoVaca = `
-        ${vaca.id}
-        ${vaca.touro}
-        ${vaca.raca}
-      `.toLowerCase()
-
-      return textoVaca.includes(q)
-    })
-
-  lista.innerHTML =
+  document.querySelector('#lista')
+    .innerHTML =
     resultado.map(vaca => `
 
       <section
@@ -329,12 +706,10 @@ function listar(texto) {
 
         <div class="right">
 
-          <strong>
-            Parto
-          </strong>
+          <strong>Parto</strong>
 
           <div>
-            ${vaca.parto}
+            ${formatDate(vaca.parto)}
           </div>
 
         </div>
@@ -344,8 +719,9 @@ function listar(texto) {
     `).join('')
 }
 
-function detalhe(id, voltar = 'animais') {
+/* FICHA DA VACA */
 
+function detalhe(id, voltar = 'animais') {
   const vaca =
     cows.find(v => v.id === id)
 
@@ -386,7 +762,7 @@ function detalhe(id, voltar = 'animais') {
 
         <div>
           <span>Última IA</span>
-          <strong>${vaca.ia}</strong>
+          <strong>${formatDate(vaca.ia)}</strong>
         </div>
 
         <div>
@@ -401,13 +777,44 @@ function detalhe(id, voltar = 'animais') {
 
         <div>
           <span>Parto previsto</span>
-          <strong>${vaca.parto}</strong>
+          <strong>${formatDate(vaca.parto)}</strong>
         </div>
 
         <div>
           <span>Secagem</span>
-          <strong>${vaca.secagem}</strong>
+          <strong>${formatDate(vaca.secagem)}</strong>
         </div>
+
+      </section>
+
+      <section class="card">
+
+        <h2>Registos</h2>
+
+        <button
+          data-action="secagem"
+          data-id="${vaca.id}"
+        >
+          ✅ Marcar secagem realizada
+        </button>
+
+        <br><br>
+
+        <button
+          data-action="parto"
+          data-id="${vaca.id}"
+        >
+          🐄 Registar parto
+        </button>
+
+        <br><br>
+
+        <button
+          data-action="inseminacao"
+          data-id="${vaca.id}"
+        >
+          ➕ Nova inseminação
+        </button>
 
       </section>
 
@@ -415,10 +822,9 @@ function detalhe(id, voltar = 'animais') {
   `
 }
 
-/* CONTROLO CENTRAL DOS CLIQUES */
+/* CLIQUES */
 
-app.addEventListener('click', event => {
-
+app.addEventListener('click', async event => {
   const elemento =
     event.target.closest('[data-action]')
 
@@ -427,39 +833,74 @@ app.addEventListener('click', event => {
   const action =
     elemento.dataset.action
 
-  if (action === 'inicio') {
+  if (action === 'login') {
+    await login()
+  }
+
+  else if (action === 'confirmar-2fa') {
+    await confirmar2FA(
+      elemento.dataset.factor
+    )
+  }
+
+  else if (action === 'inicio') {
     inicio()
-    return
   }
 
-  if (action === 'animais') {
+  else if (action === 'animais') {
     animais()
-    return
   }
 
-  if (action === 'alertas') {
+  else if (action === 'alertas') {
     alertas()
-    return
   }
 
-  if (action === 'detalhe') {
-
+  else if (action === 'detalhe') {
     detalhe(
       elemento.dataset.id,
       elemento.dataset.voltar
     )
-
-    return
   }
 
-  if (action === 'voltar-detalhe') {
+  else if (action === 'voltar-detalhe') {
+    voltarDetalhe === 'alertas'
+      ? alertas()
+      : animais()
+  }
 
-    if (voltarDetalhe === 'alertas') {
-      alertas()
-    } else {
-      animais()
-    }
+  else if (action === 'logout') {
+    await supabase.auth.signOut()
+    loginScreen('Sessão terminada.')
+  }
+
+  else if (action === 'tentar-novamente') {
+    await carregarDados()
+  }
+
+  else if (
+    action === 'secagem' ||
+    action === 'parto' ||
+    action === 'inseminacao'
+  ) {
+    alert(
+      'Botão preparado. No próximo passo vamos guardar este registo no Supabase.'
+    )
   }
 })
 
-inicio()
+/* ARRANQUE */
+
+async function arrancar() {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    loginScreen()
+    return
+  }
+
+  await verificarSeguranca()
+}
+
+arrancar()
