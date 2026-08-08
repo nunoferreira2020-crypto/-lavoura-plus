@@ -192,7 +192,8 @@ async function verificarSeguranca() {
     loginScreen('Erro ao verificar segurança.')
     return
   }
-
+await carregarDados()
+return
   if (data.currentLevel === 'aal2') {
     await carregarDados()
     return
