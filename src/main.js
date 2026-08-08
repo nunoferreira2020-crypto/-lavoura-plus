@@ -44,7 +44,61 @@ const cows = [
 
 const app = document.querySelector('#app')
 
+function ptDate(data) {
+  const [d, m, y] = data.split('/')
+  return new Date(Number(y), Number(m) - 1, Number(d))
+}
+
+function hoje() {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+function diasAte(data) {
+  return Math.round((ptDate(data) - hoje()) / 86400000)
+}
+
+function textoDias(dias) {
+  if (dias < 0) return `${Math.abs(dias)} dias atrasado`
+  if (dias === 0) return 'HOJE'
+  if (dias === 1) return 'AMANHÃ'
+  return `em ${dias} dias`
+}
+
+function obterAlertas() {
+  const eventos = []
+
+  cows.forEach(c => {
+    const ds = diasAte(c.secagem)
+    const dp = diasAte(c.parto)
+
+    if (ds >= -7 && ds <= 30) {
+      eventos.push({
+        tipo: 'Secagem',
+        icon: '🟠',
+        data: c.secagem,
+        dias: ds,
+        vaca: c
+      })
+    }
+
+    if (dp >= -7 && dp <= 30) {
+      eventos.push({
+        tipo: 'Parto',
+        icon: '🔵',
+        data: c.parto,
+        dias: dp,
+        vaca: c
+      })
+    }
+  })
+
+  return eventos.sort((a, b) => a.dias - b.dias)
+}
+
 function inicio() {
+  const alertas = obterAlertas()
+
   app.innerHTML = `
     <main class="app">
       <h1>🐄 Lavoura+</h1>
@@ -53,8 +107,14 @@ function inicio() {
       <h2>Painel Principal</h2>
 
       <section class="card">
+        <h2>🔔 Alertas</h2>
+        <p><strong>${alertas.length}</strong> eventos importantes</p>
+        <button id="verAlertas">Ver alertas</button>
+      </section>
+
+      <section class="card">
         <h2>🐄 Vacas</h2>
-        <p><strong>32 animais</strong> registados</p>
+        <p><strong>${cows.length} animais</strong> registados</p>
         <p>Gestão do efetivo e informação reprodutiva.</p>
         <button id="animais">Ver animais</button>
       </section>
@@ -72,6 +132,50 @@ function inicio() {
   `
 
   document.querySelector('#animais').onclick = animais
+  document.querySelector('#verAlertas').onclick = alertas
+}
+
+function alertas() {
+  const eventos = obterAlertas()
+
+  app.innerHTML = `
+    <main class="app">
+      <button class="back" id="voltar">← Voltar</button>
+      <h1>🔔 Alertas</h1>
+      <p class="subtitle">Próximos 30 dias</p>
+
+      <div>
+        ${
+          eventos.length
+            ? eventos.map(e => `
+              <section class="cow-card alerta" data-id="${e.vaca.id}">
+                <div>
+                  <strong>${e.icon} ${e.tipo}</strong>
+                  <div>🐄 ${e.vaca.id}</div>
+                  <div class="muted">${e.vaca.raca}</div>
+                </div>
+
+                <div class="right">
+                  <strong>${e.data}</strong>
+                  <div class="${e.dias <= 3 ? 'urgente' : 'muted'}">
+                    ${textoDias(e.dias)}
+                  </div>
+                </div>
+              </section>
+            `).join('')
+            : `<section class="card">
+                <strong>✅ Sem alertas para os próximos 30 dias.</strong>
+               </section>`
+        }
+      </div>
+    </main>
+  `
+
+  document.querySelector('#voltar').onclick = inicio
+
+  document.querySelectorAll('.alerta').forEach(el => {
+    el.onclick = () => detalhe(el.dataset.id)
+  })
 }
 
 function animais() {
@@ -113,6 +217,7 @@ function listar(texto) {
         <div class="muted">${c.raca}</div>
         <div class="muted">Touro: ${c.touro}</div>
       </div>
+
       <div class="right">
         <strong>Parto</strong>
         <div>${c.parto}</div>
