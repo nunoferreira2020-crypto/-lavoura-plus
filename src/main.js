@@ -10,7 +10,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     autoRefreshToken: true
   }
 })
-
+window.lavouraSupabase = supabase
 const app = document.querySelector('#app')
 
 let cows = []
@@ -99,7 +99,13 @@ function loginScreen(mensagem = '') {
           data-action="login"
         >
           Entrar
-        </button>
+        </button><button
+  type="button"
+  data-action="forgot-password"
+onclick="forgotPassword()"
+>
+  Esqueci-me da palavra-passe
+</button>
 
         <p
           id="loginMsg"
@@ -113,7 +119,26 @@ function loginScreen(mensagem = '') {
     </main>
   `
 }
+async function forgotPassword() {
+  const email = document.querySelector('#email').value.trim()
+  const msg = document.querySelector('#loginMsg')
 
+  if (!email) {
+    msg.textContent = 'Introduza primeiro o seu email.'
+    return
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  })
+
+  if (error) {
+    msg.textContent = 'Erro: ' + error.message
+    return
+  }
+
+  msg.textContent = 'Email de recuperação enviado. Verifique a sua caixa de entrada.'
+}
 async function login() {
   const email =
     document.querySelector('#email').value.trim()
