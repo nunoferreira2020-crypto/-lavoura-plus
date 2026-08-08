@@ -139,6 +139,7 @@ async function forgotPassword() {
 
   msg.textContent = 'Email de recuperação enviado. Verifique a sua caixa de entrada.'
 }
+window.forgotPassword = forgotPassword
 async function login() {
   const email =
     document.querySelector('#email').value.trim()
