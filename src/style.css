@@ -97,3 +97,11 @@ button {
 .hero h1 {
   margin: 4px 0;
 }
+.urgente {
+  color: #c0392b;
+  font-weight: 800;
+}
+
+.alerta {
+  border-left: 5px solid #d99b2b;
+}
