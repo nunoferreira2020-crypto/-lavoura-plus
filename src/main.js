@@ -170,7 +170,7 @@ async function login() {
     return
   }
 
-  await verificarSeguranca()
+  await carregarDados()
 }
 
 /* 2FA */
