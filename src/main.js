@@ -939,7 +939,51 @@ app.addEventListener('click', async event => {
 }
   
   
-  else if (action === 'inseminacao') {
+  else if (action === 'parto') {
+  const animalNumero = elemento.dataset.id
+
+  const { data: animal, error: animalError } = await supabase
+    .from('animals')
+    .select('id, farm_id')
+    .eq('number', animalNumero)
+    .single()
+
+  if (animalError) {
+    alert('Erro ao localizar a vaca: ' + animalError.message)
+    return
+  }
+
+  const hoje = new Date().toISOString().slice(0, 10)
+
+  const { error: partoError } = await supabase
+    .from('reproduction')
+    .insert({
+      farm_id: animal.farm_id,
+      animal_id: animal.id,
+      event_type: 'PARTO',
+      event_date: hoje
+    })
+
+  if (partoError) {
+    alert('Erro ao guardar o parto: ' + partoError.message)
+    return
+  }
+
+  const { error: animalUpdateError } = await supabase
+    .from('animals')
+    .update({
+      last_calving_date: hoje
+    })
+    .eq('id', animal.id)
+
+  if (animalUpdateError) {
+    alert('Parto guardado, mas houve erro ao atualizar a vaca: ' + animalUpdateError.message)
+    return
+  }
+
+  alert('🐄 Parto registado com sucesso.')
+  await carregarDados()
+}else if (action === 'inseminacao') {
   alert('Vamos registar uma nova inseminação.')
 }
 })
