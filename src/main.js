@@ -909,8 +909,8 @@ app.addEventListener('click', async event => {
 
   const { data: animal, error: animalError } = await supabase
     .from('animals')
-    .select('farm_id')
-    .eq('id', animalId)
+    .select('id, farm_id')
+    .eq('number', animalId)
     .single()
 
   if (animalError) {
@@ -924,7 +924,7 @@ app.addEventListener('click', async event => {
     .from('reproduction')
     .insert({
       farm_id: animal.farm_id,
-      animal_id: animalId,
+      animal_id: animal.id,
       event_type: 'SECAGEM',
       event_date: hoje
     })
