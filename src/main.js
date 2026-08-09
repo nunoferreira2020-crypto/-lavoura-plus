@@ -958,13 +958,26 @@ app.addEventListener('click', async event => {
 
   const hoje = new Date().toISOString().slice(0, 10)
 
+const dataParto = prompt(
+  'Data do parto (AAAA-MM-DD):',
+  hoje
+)
+
+if (!dataParto) return
+
+const confirmar = confirm(
+  `Confirmar parto da vaca ${animalNumero} em ${dataParto}?`
+)
+
+if (!confirmar) return
+
   const { error: partoError } = await supabase
     .from('reproduction')
     .insert({
       farm_id: animal.farm_id,
       animal_id: animal.id,
       event_type: 'PARTO',
-      event_date: hoje
+      event_date: dataParto
     })
 
   if (partoError) {
@@ -975,7 +988,7 @@ app.addEventListener('click', async event => {
   const { error: animalUpdateError } = await supabase
     .from('animals')
     .update({
-      last_calving_date: hoje
+      last_calving_date: dataParto
     })
     .eq('id', animal.id)
 
@@ -984,10 +997,79 @@ app.addEventListener('click', async event => {
     return
   }
 
-  alert('🐄 Parto registado com sucesso.')
+    alert('🐄 Parto registado com sucesso.')
   await carregarDados()
-}else if (action === 'inseminacao') {
-  alert('Vamos registar uma nova inseminação.')
+}
+
+else if (action === 'inseminacao') {
+  const animalNumero = elemento.dataset.id
+
+  const { data: animal, error: animalError } = await supabase
+    .from('animals')
+    .select('id, farm_id')
+    .eq('number', animalNumero)
+    .single()
+
+  if (animalError) {
+    alert('Erro ao localizar a vaca: ' + animalError.message)
+    return
+  }
+
+  const hoje = new Date().toISOString().slice(0, 10)
+
+  const dataIA = prompt(
+    'Data da inseminação (AAAA-MM-DD):',
+    hoje
+  )
+
+  if (!dataIA) return
+
+  const touro = prompt(
+    'Nome do touro:',
+    ''
+  )
+
+  if (!touro) return
+
+  const confirmar = confirm(
+    `Confirmar inseminação da vaca ${animalNumero} em ${dataIA} com o touro ${touro}?`
+  )
+
+  if (!confirmar) return
+
+  const dataPrevista = new Date(dataIA + 'T12:00:00')
+  dataPrevista.setDate(dataPrevista.getDate() + 283)
+
+  const partoPrevisto = dataPrevista
+    .toISOString()
+    .slice(0, 10)
+
+  const dataSecagem = new Date(dataPrevista)
+  dataSecagem.setDate(dataSecagem.getDate() - 60)
+
+  const secagemPrevista = dataSecagem
+    .toISOString()
+    .slice(0, 10)
+
+  const { error } = await supabase
+    .from('reproduction')
+    .insert({
+      farm_id: animal.farm_id,
+      animal_id: animal.id,
+      event_type: 'IA',
+      event_date: dataIA,
+      bull: touro,
+      expected_calving: partoPrevisto,
+      expected_dry_off: secagemPrevista
+    })
+
+  if (error) {
+    alert('Erro ao guardar a inseminação: ' + error.message)
+    return
+  }
+
+  alert('✅ Inseminação registada com sucesso.')
+  await carregarDados()
 }
 })
 
