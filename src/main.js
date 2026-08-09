@@ -382,6 +382,7 @@ async function carregarDados() {
       .from('reproduction')
       .select(`
         animal_id,
+        event_type,
         event_date,
         bull,
         semen_type,
@@ -403,7 +404,9 @@ async function carregarDados() {
   cows = animals.data.map(animal => {
     const repro =
       reproduction.data.find(
-        r => r.animal_id === animal.id
+        r =>
+  r.animal_id === animal.id &&
+  r.event_type === 'IA'
       )
 
     return {
