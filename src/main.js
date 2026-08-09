@@ -904,14 +904,40 @@ app.addEventListener('click', async event => {
     await carregarDados()
   }
 
-  else if (
-    action === 'secagem' ||
-    action === 'parto'
-  ) {
-    alert(
-      'Botão preparado. No próximo passo vamos guardar este registo no Supabase.'
-    )
+  if (action === 'secagem') {
+  const animalId = elemento.dataset.id
+
+  const { data: animal, error: animalError } = await supabase
+    .from('animals')
+    .select('farm_id')
+    .eq('id', animalId)
+    .single()
+
+  if (animalError) {
+    alert('Erro ao localizar a vaca: ' + animalError.message)
+    return
   }
+
+  const hoje = new Date().toISOString().slice(0, 10)
+
+  const { error } = await supabase
+    .from('reproduction')
+    .insert({
+      farm_id: animal.farm_id,
+      animal_id: animalId,
+      event_type: 'SECAGEM',
+      event_date: hoje
+    })
+
+  if (error) {
+    alert('Erro ao guardar a secagem: ' + error.message)
+    return
+  }
+
+  alert('✅ Secagem registada com sucesso.')
+  await carregarDados()
+}
+  
   
   else if (action === 'inseminacao') {
   alert('Vamos registar uma nova inseminação.')
