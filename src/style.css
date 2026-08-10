@@ -190,7 +190,7 @@ body.com-bottom-nav {
   color: #718071 !important;
 }
 
-.bottom-nav button.bottom-nav-item:first-child {
+.bottom-nav button.bottom-nav-item.ativo {
   background: #eef5ef !important;
   color: #2f7d45 !important;
 }
