@@ -1454,7 +1454,7 @@ function obterDiagnosticosPendentes() {
 
       if (
         diasPosIA < 28 ||
-        diasPosIA > 120
+        diasPosIA > 60
       ) {
         return
       }
