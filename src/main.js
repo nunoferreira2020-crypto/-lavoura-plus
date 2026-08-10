@@ -6909,6 +6909,10 @@ if (action === 'mais') {
   maisScreen()
   return
 }
+if (action === 'definicoes') {
+  definicoesScreen()
+  return
+}
 })
 
 function marcarBarraAtiva(action) {
@@ -6954,6 +6958,38 @@ function maisScreen() {
           Sair
         </button>
       </section>
+
+    </main>
+  `
+}
+
+function definicoesScreen() {
+  app.innerHTML = `
+    <main class="app">
+
+      <section class="hero">
+        <h1>⚙️ Definições</h1>
+        <p>Configurações da Lavoura+</p>
+      </section>
+
+      <section class="card">
+        <h2>🐄 Exploração</h2>
+        <p>Preferências gerais da exploração.</p>
+      </section>
+
+      <section class="card">
+        <h2>🔔 Alertas</h2>
+        <p>Configurações de avisos e tarefas.</p>
+      </section>
+
+      <section class="card">
+        <h2>📱 Aplicação</h2>
+        <p>Preferências da Lavoura+.</p>
+      </section>
+
+      <button data-action="mais">
+        ← Voltar
+      </button>
 
     </main>
   `
