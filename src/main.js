@@ -140,6 +140,71 @@ async function forgotPassword() {
   msg.textContent = 'Email de recuperação enviado. Verifique a sua caixa de entrada.'
 }
 window.forgotPassword = forgotPassword
+
+function recoveryScreen() {
+  app.innerHTML = `
+    <main class="app">
+      <h1>🔑 Nova palavra-passe</h1>
+
+      <section class="card">
+        <h2>Alterar palavra-passe</h2>
+
+        <p>
+          Introduza a nova palavra-passe
+          que pretende utilizar.
+        </p>
+
+        <input
+          id="newPassword"
+          class="search"
+          type="password"
+          placeholder="Nova palavra-passe"
+          autocomplete="new-password"
+        >
+
+        <button data-action="update-password">
+          Guardar nova palavra-passe
+        </button>
+
+        <p id="passwordMsg" class="muted"></p>
+      </section>
+    </main>
+  `
+}
+
+async function updatePassword() {
+  const password =
+    document.querySelector('#newPassword').value
+
+  const msg =
+    document.querySelector('#passwordMsg')
+
+  if (!password || password.length < 6) {
+    msg.textContent =
+      'A palavra-passe deve ter pelo menos 6 caracteres.'
+    return
+  }
+
+  msg.textContent = 'A guardar…'
+
+  const { error } =
+    await supabase.auth.updateUser({
+      password
+    })
+
+  if (error) {
+    msg.textContent =
+      'Erro: ' + error.message
+    return
+  }
+
+  msg.textContent =
+    '✅ Palavra-passe alterada com sucesso.'
+
+  setTimeout(() => {
+    carregarDados()
+  }, 1000)
+}
 async function login() {
   const email =
     document.querySelector('#email').value.trim()
@@ -847,6 +912,9 @@ app.addEventListener('click', async event => {
   }
 else if (action === 'forgot-password') {
   await forgotPassword()
+}
+else if (action === 'update-password') {
+  await updatePassword()
 }
   else if (action === 'confirmar-2fa') {
     await confirmar2FA(
