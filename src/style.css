@@ -172,10 +172,7 @@ body.com-bottom-nav {
   line-height: 1;
 }
 
-.bottom-nav-item:first-child {
-  color: #2f7d45;
-  background: #eef5ef;
-}
+
 
 .bottom-nav button.bottom-nav-item {
   width: auto !important;
