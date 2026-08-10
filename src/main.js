@@ -1475,23 +1475,35 @@ function obterDiagnosticosPendentes() {
 
       diagnosticos.push({
 
-        tipo:
-          'Diagnóstico',
+  tipo:
+    'Diagnóstico',
 
-        icon:
-          '🩺',
+  icon:
+    '🩺',
 
-        data:
-          dataDiagnostico,
+  data:
+    dataDiagnostico,
 
-        dias,
+  dias,
 
-        diasPosIA,
+  diasPosIA,
 
-        vaca
-      })
-    }
-  )
+  estadoDiagnostico:
+    diasPosIA <= 35
+      ? 'PRONTO PARA DIAGNÓSTICO'
+      : diasPosIA <= 60
+        ? 'DIAGNÓSTICO PENDENTE'
+        : 'MUITO ATRASADO',
+
+  nivelDiagnostico:
+    diasPosIA <= 35
+      ? 'pronto'
+      : diasPosIA <= 60
+        ? 'pendente'
+        : 'atrasado',
+
+  vaca
+})
 
 
   return diagnosticos.sort(
@@ -1539,6 +1551,17 @@ function prioridadeTarefa(
   tarefa
 ) {
 
+  function prioridadeTarefa(
+  tarefa
+) {
+
+  if (
+    tarefa.tipo === 'Diagnóstico' &&
+    tarefa.estadoDiagnostico
+  ) {
+    return tarefa.estadoDiagnostico
+  }
+
   if (tarefa.dias < 0) {
     return 'ATRASADO'
   }
@@ -1551,26 +1574,11 @@ function prioridadeTarefa(
     return 'PRÓXIMO'
   }
 
+  
+
+
   return 'PLANEADO'
-}
-
-
-function classePrioridade(
-  tarefa
-) {
-
-  if (tarefa.dias < 0) {
-    return 'urgente'
-  }
-
-  if (tarefa.dias === 0) {
-    return 'urgente'
-  }
-
-  return 'muted'
-}
-
-
+} 
 function cartaoTarefa(
   tarefa,
   voltar = 'hoje'
