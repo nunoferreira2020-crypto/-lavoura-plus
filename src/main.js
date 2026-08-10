@@ -866,7 +866,9 @@ app.addEventListener('click', async event => {
   if (action === 'login') {
     await login()
   }
-
+else if (action === 'forgot-password') {
+  await forgotPassword()
+}
   else if (action === 'confirmar-2fa') {
     await confirmar2FA(
       elemento.dataset.factor
