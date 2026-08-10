@@ -6937,21 +6937,7 @@ function maisScreen() {
         <p>Gestão da exploração</p>
       </section>
 
-      <section class="card">
-        <h2>💶 Finanças</h2>
-        <p>Receitas, despesas e saldo da exploração.</p>
-        <button data-action="financas">
-          Ver finanças
-        </button>
-      </section>
-
-      <section class="card">
-        <h2>📊 Rentabilidade</h2>
-        <p>Custos, margem e rentabilidade por litro.</p>
-        <button data-action="rentabilidade">
-          Ver rentabilidade
-        </button>
-      </section>
+      
 
       <section class="card">
         <h2>⚙️ Definições</h2>
