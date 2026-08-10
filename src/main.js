@@ -6887,6 +6887,7 @@ document.addEventListener('click', event => {
 
   if (action === 'reproducao') {
     reproducaoScreen()
+    marcarBarraAtiva('reproducao')
     return
   }
 
