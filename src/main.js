@@ -6867,3 +6867,36 @@ observadorBarra.observe(
 
 
 atualizarBarraInferior()
+
+document.addEventListener('click', event => {
+  const item = event.target.closest('.bottom-nav-item')
+
+  if (!item) return
+
+  const action = item.dataset.action
+
+  if (action === 'inicio') {
+    inicio()
+    return
+  }
+
+  if (action === 'animais') {
+    animaisScreen()
+    return
+  }
+
+  if (action === 'reproducao') {
+    reproducaoScreen()
+    return
+  }
+
+  if (action === 'producao') {
+    producaoScreen()
+    return
+  }
+
+  if (action === 'financas') {
+    financasScreen()
+    return
+  }
+})
