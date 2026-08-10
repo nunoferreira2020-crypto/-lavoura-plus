@@ -1894,7 +1894,7 @@ function diagnosticosScreen() {
    LISTA DE ANIMAIS
 ========================================================= */
 
-function animaisScreen() {
+function animaisScreenLegacy() {
 
   voltarDetalhe =
     'animais'
@@ -2102,7 +2102,7 @@ function pesquisarAnimais(
    DETALHE DO ANIMAL
 ========================================================= */
 
-function detalheAnimal(
+function detalheAnimalLegacy(
   id,
   voltar = null
 ) {
@@ -2425,7 +2425,7 @@ function detalheAnimal(
    VOLTAR DO DETALHE
 ========================================================= */
 
-function voltarDoDetalhe() {
+function voltarDoDetalheLegacy() {
 
   if (
     voltarDetalhe ===
