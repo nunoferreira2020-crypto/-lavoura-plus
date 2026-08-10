@@ -6876,34 +6876,35 @@ document.addEventListener('click', event => {
   const action = item.dataset.action
 
   if (action === 'inicio') {
-    inicio()
-    marcarBarraAtiva('inicio')
-    return
-  }
+  marcarBarraAtiva('inicio')
+  inicio()
+  return
+}
 
-  if (action === 'animais') {
-    animaisScreen()
-    marcarBarraAtiva('animais')
-    return
-  }
+if (action === 'animais') {
+  marcarBarraAtiva('animais')
+  animaisScreen()
+  return
+}
 
-  if (action === 'reproducao') {
-    reproducaoScreen()
-    marcarBarraAtiva('reproducao')
-    return
-  }
+if (action === 'reproducao') {
+  marcarBarraAtiva('reproducao')
+  reproducaoScreen()
+  return
+}
 
-  if (action === 'producao') {
-    producaoScreen()
-    marcarBarraAtiva('producao')
-    return
-  }
+if (action === 'producao') {
+  marcarBarraAtiva('producao')
+  producaoScreen()
+  return
+}
 
-  if (action === 'financas') {
-    financasScreen()
-    marcarBarraAtiva('financas')
-    return
-  }
+if (action === 'financas') {
+  marcarBarraAtiva('financas')
+  financasScreen()
+  return
+}
+
 })
 
 function marcarBarraAtiva(action) {
