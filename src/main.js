@@ -1577,7 +1577,35 @@ function prioridadeTarefa(
 
 
   return 'PLANEADO'
-} 
+}
+ function classePrioridade(
+  tarefa
+) {
+
+  if (
+    tarefa.tipo === 'Diagnóstico'
+  ) {
+
+    if (
+      tarefa.nivelDiagnostico === 'atrasado'
+    ) {
+      return 'urgente'
+    }
+
+    return 'muted'
+  }
+
+  if (tarefa.dias < 0) {
+    return 'urgente'
+  }
+
+  if (tarefa.dias === 0) {
+    return 'urgente'
+  }
+
+  return 'muted'
+}
+
 function cartaoTarefa(
   tarefa,
   voltar = 'hoje'
