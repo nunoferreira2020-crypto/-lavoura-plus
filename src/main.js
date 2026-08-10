@@ -6877,11 +6877,13 @@ document.addEventListener('click', event => {
 
   if (action === 'inicio') {
     inicio()
+    marcarBarraAtiva('inicio')
     return
   }
 
   if (action === 'animais') {
     animaisScreen()
+    marcarBarraAtiva('animais')
     return
   }
 
@@ -6893,11 +6895,13 @@ document.addEventListener('click', event => {
 
   if (action === 'producao') {
     producaoScreen()
+    marcarBarraAtiva('producao')
     return
   }
 
   if (action === 'financas') {
     financasScreen()
+    marcarBarraAtiva('financas')
     return
   }
 })
