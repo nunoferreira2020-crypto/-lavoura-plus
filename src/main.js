@@ -102,7 +102,7 @@ function loginScreen(mensagem = '') {
         </button><button
   type="button"
   data-action="forgot-password"
-onclick="forgotPassword()"
+
 >
   Esqueci-me da palavra-passe
 </button>
@@ -192,8 +192,8 @@ async function verificarSeguranca() {
     loginScreen('Erro ao verificar segurança.')
     return
   }
-await carregarDados()
-return
+
+
   if (data.currentLevel === 'aal2') {
     await carregarDados()
     return
