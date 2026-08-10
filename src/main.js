@@ -204,29 +204,8 @@ async function verificarSeguranca() {
     return
   }
 
-  app.innerHTML = `
-    <main class="app">
-
-      <h1>🔐 Segurança</h1>
-
-      <section class="card">
-
-        <h2>2FA necessário</h2>
-
-        <p>
-          Esta conta ainda não tem
-          autenticação de dois fatores
-          disponível.
-        </p>
-
-        <button data-action="logout">
-          Sair
-        </button>
-
-      </section>
-
-    </main>
-  `
+  await carregarDados()
+return
 }
 
 async function pedirCodigo2FA() {
