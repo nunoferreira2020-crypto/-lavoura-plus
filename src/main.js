@@ -6900,3 +6900,19 @@ document.addEventListener('click', event => {
     return
   }
 })
+
+function marcarBarraAtiva(action) {
+  document
+    .querySelectorAll('.bottom-nav-item')
+    .forEach(item => {
+      item.classList.remove('ativo')
+    })
+
+  const ativo = document.querySelector(
+    `.bottom-nav-item[data-action="${action}"]`
+  )
+
+  if (ativo) {
+    ativo.classList.add('ativo')
+  }
+}
