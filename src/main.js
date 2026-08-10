@@ -1552,9 +1552,7 @@ function prioridadeTarefa(
   tarefa
 ) {
 
-  function prioridadeTarefa(
-  tarefa
-) {
+
 
   if (
     tarefa.tipo === 'Diagnóstico' &&
