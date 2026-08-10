@@ -1,30 +1,59 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://oegbnvwwrudnskycgbdl.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_b86gGWtrtFM2MVhU_-h10g_5vttckRp'
+const SUPABASE_URL =
+  'https://oegbnvwwrudnskycgbdl.supabase.co'
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true
+const SUPABASE_KEY =
+  'sb_publishable_b86gGWtrtFM2MVhU_-h10g_5vttckRp'
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
   }
-})
+)
+
 window.lavouraSupabase = supabase
-const app = document.querySelector('#app')
+
+const app =
+  document.querySelector('#app')
 
 let cows = []
-let voltarDetalhe = 'animais'
+
+let voltarDetalhe =
+  'animais'
+
+let recoveryMode =
+  false
+
+
+/* =========================
+   DATAS
+========================= */
 
 function formatDate(data) {
-  if (!data) return '—'
 
-  const [ano, mes, dia] = data.split('-')
+  if (!data) {
+    return '—'
+  }
+
+  const [ano, mes, dia] =
+    data.split('-')
+
   return `${dia}/${mes}/${ano}`
 }
 
+
 function hoje() {
-  const agora = new Date()
+
+  const agora =
+    new Date()
 
   return new Date(
     agora.getFullYear(),
@@ -33,42 +62,74 @@ function hoje() {
   )
 }
 
+
 function diasAte(data) {
-  if (!data) return 9999
 
-  const [ano, mes, dia] = data.split('-')
+  if (!data) {
+    return 9999
+  }
 
-  const destino = new Date(
-    Number(ano),
-    Number(mes) - 1,
-    Number(dia)
-  )
+  const [ano, mes, dia] =
+    data.split('-')
+
+  const destino =
+    new Date(
+      Number(ano),
+      Number(mes) - 1,
+      Number(dia)
+    )
 
   return Math.round(
-    (destino.getTime() - hoje().getTime()) /
-    86400000
+    (
+      destino.getTime() -
+      hoje().getTime()
+    ) / 86400000
   )
 }
 
+
 function textoDias(dias) {
+
   if (dias < 0) {
-    return `${Math.abs(dias)} dias atrasado`
+
+    const quantidade =
+      Math.abs(dias)
+
+    return quantidade === 1
+      ? '1 dia atrasado'
+      : `${quantidade} dias atrasado`
   }
 
-  if (dias === 0) return 'HOJE'
-  if (dias === 1) return 'AMANHÃ'
+  if (dias === 0) {
+    return 'HOJE'
+  }
+
+  if (dias === 1) {
+    return 'AMANHÃ'
+  }
 
   return `em ${dias} dias`
 }
 
-/* LOGIN */
 
-function loginScreen(mensagem = '') {
+/* =========================
+   LOGIN
+========================= */
+
+function loginScreen(
+  mensagem = ''
+) {
+
+  recoveryMode = false
+
   app.innerHTML = `
     <main class="app">
 
       <h1>🐄 Lavoura+</h1>
-      <p class="subtitle">Acesso seguro</p>
+
+      <p class="subtitle">
+        Acesso seguro
+      </p>
 
       <section class="card">
 
@@ -99,13 +160,16 @@ function loginScreen(mensagem = '') {
           data-action="login"
         >
           Entrar
-        </button><button
-  type="button"
-  data-action="forgot-password"
+        </button>
 
->
-  Esqueci-me da palavra-passe
-</button>
+        <br><br>
+
+        <button
+          type="button"
+          data-action="forgot-password"
+        >
+          Esqueci-me da palavra-passe
+        </button>
 
         <p
           id="loginMsg"
@@ -119,35 +183,125 @@ function loginScreen(mensagem = '') {
     </main>
   `
 }
-async function forgotPassword() {
-  const email = document.querySelector('#email').value.trim()
-  const msg = document.querySelector('#loginMsg')
 
-  if (!email) {
-    msg.textContent = 'Introduza primeiro o seu email.'
+
+async function login() {
+
+  const email =
+    document
+      .querySelector('#email')
+      .value
+      .trim()
+
+  const password =
+    document
+      .querySelector('#password')
+      .value
+
+  const msg =
+    document
+      .querySelector('#loginMsg')
+
+  if (
+    !email ||
+    !password
+  ) {
+
+    msg.textContent =
+      'Introduza email e palavra-passe.'
+
     return
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
-  })
+  msg.textContent =
+    'A entrar…'
+
+  const { error } =
+    await supabase.auth
+      .signInWithPassword({
+        email,
+        password
+      })
 
   if (error) {
-    msg.textContent = 'Erro: ' + error.message
+
+    msg.textContent =
+      'Email ou palavra-passe incorretos.'
+
     return
   }
 
-  msg.textContent = 'Email de recuperação enviado. Verifique a sua caixa de entrada.'
+  await verificarSeguranca()
 }
-window.forgotPassword = forgotPassword
+
+
+/* =========================
+   RECUPERAR PALAVRA-PASSE
+========================= */
+
+async function forgotPassword() {
+
+  const email =
+    document
+      .querySelector('#email')
+      .value
+      .trim()
+
+  const msg =
+    document
+      .querySelector('#loginMsg')
+
+  if (!email) {
+
+    msg.textContent =
+      'Introduza primeiro o seu email.'
+
+    return
+  }
+
+  msg.textContent =
+    'A enviar email…'
+
+  const { error } =
+    await supabase.auth
+      .resetPasswordForEmail(
+        email,
+        {
+          redirectTo:
+            window.location.origin
+        }
+      )
+
+  if (error) {
+
+    msg.textContent =
+      'Erro: ' +
+      error.message
+
+    return
+  }
+
+  msg.textContent =
+    '✅ Email de recuperação enviado. Verifique a sua caixa de entrada.'
+}
+
 
 function recoveryScreen() {
+
+  recoveryMode = true
+
   app.innerHTML = `
     <main class="app">
-      <h1>🔑 Nova palavra-passe</h1>
+
+      <h1>
+        🔑 Nova palavra-passe
+      </h1>
 
       <section class="card">
-        <h2>Alterar palavra-passe</h2>
+
+        <h2>
+          Alterar palavra-passe
+        </h2>
 
         <p>
           Introduza a nova palavra-passe
@@ -162,90 +316,130 @@ function recoveryScreen() {
           autocomplete="new-password"
         >
 
-        <button data-action="update-password">
+        <input
+          id="confirmPassword"
+          class="search"
+          type="password"
+          placeholder="Confirmar palavra-passe"
+          autocomplete="new-password"
+        >
+
+        <button
+          data-action="update-password"
+        >
           Guardar nova palavra-passe
         </button>
 
-        <p id="passwordMsg" class="muted"></p>
+        <p
+          id="passwordMsg"
+          class="muted"
+        ></p>
+
       </section>
+
     </main>
   `
 }
 
+
 async function updatePassword() {
+
   const password =
-    document.querySelector('#newPassword').value
+    document
+      .querySelector('#newPassword')
+      .value
+
+  const confirmPassword =
+    document
+      .querySelector('#confirmPassword')
+      .value
 
   const msg =
-    document.querySelector('#passwordMsg')
+    document
+      .querySelector('#passwordMsg')
 
-  if (!password || password.length < 6) {
+  if (
+    !password ||
+    password.length < 6
+  ) {
+
     msg.textContent =
       'A palavra-passe deve ter pelo menos 6 caracteres.'
+
     return
   }
 
-  msg.textContent = 'A guardar…'
+  if (
+    password !==
+    confirmPassword
+  ) {
+
+    msg.textContent =
+      'As palavras-passe não são iguais.'
+
+    return
+  }
+
+  msg.textContent =
+    'A guardar…'
 
   const { error } =
-    await supabase.auth.updateUser({
-      password
-    })
+    await supabase.auth
+      .updateUser({
+        password
+      })
 
   if (error) {
+
     msg.textContent =
-      'Erro: ' + error.message
+      'Erro: ' +
+      error.message
+
     return
   }
 
   msg.textContent =
     '✅ Palavra-passe alterada com sucesso.'
 
-  setTimeout(() => {
-    carregarDados()
-  }, 1000)
-}
-async function login() {
-  const email =
-    document.querySelector('#email').value.trim()
+  recoveryMode = false
 
-  const password =
-    document.querySelector('#password').value
+  window.history
+    .replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    )
 
-  const msg =
-    document.querySelector('#loginMsg')
-
-  if (!email || !password) {
-    msg.textContent =
-      'Introduza email e palavra-passe.'
-    return
-  }
-
-  msg.textContent = 'A entrar…'
-
-  const { error } =
-    await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-
-  if (error) {
-    msg.textContent =
-      'Email ou palavra-passe incorretos.'
-    return
-  }
-
-  await carregarDados()
+  setTimeout(
+    async () => {
+      await verificarSeguranca()
+    },
+    1000
+  )
 }
 
-/* 2FA */
+
+/* =========================
+   2FA
+========================= */
 
 async function verificarSeguranca() {
+
+  if (recoveryMode) {
+    return
+  }
+
   app.innerHTML = `
     <main class="app">
+
       <section class="card">
-        <h2>🔐 A verificar segurança…</h2>
+
+        <h2>
+          🔐 A verificar segurança…
+        </h2>
+
       </section>
+
     </main>
   `
 
@@ -254,69 +448,77 @@ async function verificarSeguranca() {
       .getAuthenticatorAssuranceLevel()
 
   if (error) {
-    loginScreen('Erro ao verificar segurança.')
+
+    loginScreen(
+      'Erro ao verificar segurança.'
+    )
+
     return
   }
 
+  if (
+    data.currentLevel === 'aal2'
+  ) {
 
-  if (data.currentLevel === 'aal2') {
     await carregarDados()
+
     return
   }
 
-  if (data.nextLevel === 'aal2') {
+  if (
+    data.nextLevel === 'aal2'
+  ) {
+
     await pedirCodigo2FA()
+
     return
   }
 
   await carregarDados()
-return
 }
 
+
 async function pedirCodigo2FA() {
+
   const { data, error } =
-    await supabase.auth.mfa.listFactors()
+    await supabase.auth.mfa
+      .listFactors()
 
   if (error) {
-    loginScreen('Não foi possível verificar o 2FA.')
+
+    loginScreen(
+      'Não foi possível verificar o 2FA.'
+    )
+
     return
   }
 
   const factor =
     data.totp?.find(
-      f => f.status === 'verified'
+      f =>
+        f.status ===
+        'verified'
     )
 
   if (!factor) {
-    app.innerHTML = `
-      <main class="app">
 
-        <h1>🔐 Segurança</h1>
+    await carregarDados()
 
-        <section class="card">
-          <p>
-            Não foi encontrado um autenticador
-            2FA verificado.
-          </p>
-
-          <button data-action="logout">
-            Sair
-          </button>
-        </section>
-
-      </main>
-    `
     return
   }
 
   app.innerHTML = `
     <main class="app">
 
-      <h1>🔐 Verificação</h1>
+      <h1>
+        🔐 Verificação
+      </h1>
 
       <section class="card">
 
-        <h2>Código de segurança</h2>
+        <h2>
+          Código de segurança
+        </h2>
 
         <p>
           Abra o Google Authenticator
@@ -350,57 +552,98 @@ async function pedirCodigo2FA() {
   `
 }
 
-async function confirmar2FA(factorId) {
-  const codigo =
-    document.querySelector('#codigo2fa')
-      .value.trim()
+
+async function confirmar2FA(
+  factorId
+) {
+
+  const input =
+    document
+      .querySelector('#codigo2fa')
 
   const msg =
-    document.querySelector('#mfaMsg')
+    document
+      .querySelector('#mfaMsg')
 
-  if (!/^\d{6}$/.test(codigo)) {
-    msg.textContent =
-      'Introduza o código de 6 dígitos.'
+  if (
+    !input ||
+    !msg
+  ) {
     return
   }
 
-  msg.textContent = 'A verificar…'
+  const codigo =
+    input.value.trim()
+
+  if (
+    !/^\d{6}$/.test(codigo)
+  ) {
+
+    msg.textContent =
+      'Introduza o código de 6 dígitos.'
+
+    return
+  }
+
+  msg.textContent =
+    'A verificar…'
 
   const challenge =
-    await supabase.auth.mfa.challenge({
-      factorId
-    })
+    await supabase.auth.mfa
+      .challenge({
+        factorId
+      })
 
   if (challenge.error) {
+
     msg.textContent =
       'Erro ao criar verificação.'
+
     return
   }
 
   const verify =
-    await supabase.auth.mfa.verify({
-      factorId,
-      challengeId: challenge.data.id,
-      code: codigo
-    })
+    await supabase.auth.mfa
+      .verify({
+        factorId,
+        challengeId:
+          challenge.data.id,
+        code: codigo
+      })
 
   if (verify.error) {
+
     msg.textContent =
       'Código incorreto ou expirado.'
+
     return
   }
 
   await carregarDados()
 }
 
-/* DADOS REAIS DO SUPABASE */
+
+/* =========================
+   DADOS DO SUPABASE
+========================= */
 
 async function carregarDados() {
+
+  if (recoveryMode) {
+    return
+  }
+
   app.innerHTML = `
     <main class="app">
+
       <section class="card">
-        <h2>🐄 A carregar a exploração…</h2>
+
+        <h2>
+          🐄 A carregar a exploração…
+        </h2>
+
       </section>
+
     </main>
   `
 
@@ -417,7 +660,11 @@ async function carregarDados() {
       .order('number')
 
   if (animals.error) {
-    erroDados(animals.error.message)
+
+    erroDados(
+      animals.error.message
+    )
+
     return
   }
 
@@ -436,54 +683,177 @@ async function carregarDados() {
         notes,
         created_at
       `)
-      .order('event_date', {
-        ascending: false
-      })
+      .order(
+        'event_date',
+        {
+          ascending: false
+        }
+      )
 
   if (reproduction.error) {
-    erroDados(reproduction.error.message)
+
+    erroDados(
+      reproduction.error.message
+    )
+
     return
   }
 
-  cows = animals.data.map(animal => {
-    const repro =
-      reproduction.data.find(
-        r =>
-  r.animal_id === animal.id &&
-  r.event_type === 'IA'
-      )
+  cows =
+    animals.data.map(
+      animal => {
 
-    return {
-      uuid: animal.id,
-      id: animal.number,
-      raca: animal.breed || '—',
-      status: animal.status,
-      ia: repro?.event_date || null,
-      touro: repro?.bull || '—',
-      parto: repro?.expected_calving || null,
-      secagem: repro?.expected_dry_off || null,
-      notas: animal.notes || ''
-    }
-  })
+        const eventosAnimal =
+          reproduction.data
+            .filter(
+              r =>
+                r.animal_id ===
+                animal.id
+            )
+
+        const ultimaIA =
+          eventosAnimal.find(
+            r =>
+              r.event_type ===
+              'IA'
+          )
+
+        const ultimaSecagem =
+          eventosAnimal.find(
+            r =>
+              r.event_type ===
+              'SECAGEM'
+          )
+
+        const ultimoParto =
+          eventosAnimal.find(
+            r =>
+              r.event_type ===
+              'PARTO'
+          )
+
+        let secagemPrevista =
+          ultimaIA
+            ?.expected_dry_off ||
+          null
+
+        let partoPrevisto =
+          ultimaIA
+            ?.expected_calving ||
+          null
+
+        /*
+          Se já houve uma secagem
+          depois da IA, deixa de aparecer
+          como secagem pendente.
+        */
+
+        if (
+          ultimaSecagem &&
+          ultimaIA &&
+          ultimaSecagem.event_date >=
+            ultimaIA.event_date
+        ) {
+
+          secagemPrevista =
+            null
+        }
+
+        /*
+          Se já houve parto
+          depois da IA, deixa de aparecer
+          parto/secagem dessa gestação.
+        */
+
+        if (
+          ultimoParto &&
+          ultimaIA &&
+          ultimoParto.event_date >=
+            ultimaIA.event_date
+        ) {
+
+          partoPrevisto =
+            null
+
+          secagemPrevista =
+            null
+        }
+
+        return {
+
+          uuid:
+            animal.id,
+
+          id:
+            animal.number,
+
+          raca:
+            animal.breed ||
+            '—',
+
+          status:
+            animal.status ||
+            '—',
+
+          ia:
+            ultimaIA
+              ?.event_date ||
+            null,
+
+          touro:
+            ultimaIA
+              ?.bull ||
+            '—',
+
+          parto:
+            partoPrevisto,
+
+          secagem:
+            secagemPrevista,
+
+          ultimaSecagem:
+            ultimaSecagem
+              ?.event_date ||
+            null,
+
+          ultimoParto:
+            ultimoParto
+              ?.event_date ||
+            null,
+
+          notas:
+            animal.notes ||
+            ''
+        }
+      }
+    )
 
   inicio()
 }
 
+
 function erroDados(texto) {
+
   app.innerHTML = `
     <main class="app">
 
-      <h1>⚠️ Lavoura+</h1>
+      <h1>
+        ⚠️ Lavoura+
+      </h1>
 
       <section class="card">
 
-        <h2>Não foi possível abrir os dados</h2>
+        <h2>
+          Não foi possível abrir os dados
+        </h2>
 
         <p class="muted">
           ${texto}
         </p>
 
-        <button data-action="tentar-novamente">
+        <button
+          data-action="tentar-novamente"
+        >
           Tentar novamente
         </button>
 
@@ -493,96 +863,161 @@ function erroDados(texto) {
   `
 }
 
-/* ALERTAS */
+
+/* =========================
+   ALERTAS
+========================= */
 
 function obterAlertas() {
+
   const eventos = []
 
-  cows.forEach(vaca => {
-    const ds = diasAte(vaca.secagem)
-    const dp = diasAte(vaca.parto)
+  cows.forEach(
+    vaca => {
 
-    if (vaca.secagem &&
-        ds >= -7 &&
-        ds <= 30) {
+      if (vaca.secagem) {
 
-      eventos.push({
-        tipo: 'Secagem',
-        icon: '🟠',
-        data: vaca.secagem,
-        dias: ds,
-        vaca
-      })
+        const dias =
+          diasAte(
+            vaca.secagem
+          )
+
+        if (
+          dias >= -7 &&
+          dias <= 30
+        ) {
+
+          eventos.push({
+
+            tipo:
+              'Secagem',
+
+            icon:
+              '🟠',
+
+            data:
+              vaca.secagem,
+
+            dias,
+
+            vaca
+          })
+        }
+      }
+
+      if (vaca.parto) {
+
+        const dias =
+          diasAte(
+            vaca.parto
+          )
+
+        if (
+          dias >= -7 &&
+          dias <= 30
+        ) {
+
+          eventos.push({
+
+            tipo:
+              'Parto',
+
+            icon:
+              '🔵',
+
+            data:
+              vaca.parto,
+
+            dias,
+
+            vaca
+          })
+        }
+      }
     }
-
-    if (vaca.parto &&
-        dp >= -7 &&
-        dp <= 30) {
-
-      eventos.push({
-        tipo: 'Parto',
-        icon: '🔵',
-        data: vaca.parto,
-        dias: dp,
-        vaca
-      })
-    }
-  })
+  )
 
   return eventos.sort(
-    (a, b) => a.dias - b.dias
+    (a, b) =>
+      a.dias -
+      b.dias
   )
 }
 
-/* INÍCIO */
+
+/* =========================
+   INÍCIO
+========================= */
 
 function inicio() {
-  const eventos = obterAlertas()
+
+  const eventos =
+    obterAlertas()
 
   app.innerHTML = `
     <main class="app">
 
-      <h1>🐄 Lavoura+</h1>
+      <h1>
+        🐄 Lavoura+
+      </h1>
 
       <p class="subtitle">
         Gestão da Exploração
       </p>
 
-      <h2>Painel Principal</h2>
+      <h2>
+        Painel Principal
+      </h2>
 
       <section class="card">
 
-        <h2>🔔 Alertas</h2>
+        <h2>
+          🔔 Alertas
+        </h2>
 
         <p>
-          <strong>${eventos.length}</strong>
+          <strong>
+            ${eventos.length}
+          </strong>
           eventos importantes
         </p>
 
-        <button data-action="alertas">
+        <button
+          data-action="alertas"
+        >
           Ver alertas
         </button>
 
       </section>
 
+
       <section class="card">
 
-        <h2>🐄 Vacas</h2>
+        <h2>
+          🐄 Vacas
+        </h2>
 
         <p>
-          <strong>${cows.length} animais</strong>
+          <strong>
+            ${cows.length} animais
+          </strong>
           registados
         </p>
 
-        <button data-action="animais">
+        <button
+          data-action="animais"
+        >
           Ver animais
         </button>
 
       </section>
 
+
       <section class="card">
 
-        <h2>🥛 Produção</h2>
+        <h2>
+          🥛 Produção
+        </h2>
 
         <p>
           Registo e acompanhamento
@@ -591,9 +1026,12 @@ function inicio() {
 
       </section>
 
+
       <section class="card">
 
-        <h2>📅 Reprodução</h2>
+        <h2>
+          📅 Reprodução
+        </h2>
 
         <p>
           Inseminações, diagnósticos,
@@ -602,15 +1040,20 @@ function inicio() {
 
       </section>
 
+
       <section class="card">
 
-        <h2>🔐 Conta</h2>
+        <h2>
+          🔐 Conta
+        </h2>
 
         <p>
-          Sessão protegida com 2FA.
+          Sessão protegida.
         </p>
 
-        <button data-action="logout">
+        <button
+          data-action="logout"
+        >
           Sair
         </button>
 
@@ -620,10 +1063,15 @@ function inicio() {
   `
 }
 
-/* LISTA DE ALERTAS */
+
+/* =========================
+   LISTA DE ALERTAS
+========================= */
 
 function alertas() {
-  const eventos = obterAlertas()
+
+  const eventos =
+    obterAlertas()
 
   app.innerHTML = `
     <main class="app">
@@ -635,7 +1083,9 @@ function alertas() {
         ← Voltar
       </button>
 
-      <h1>🔔 Alertas</h1>
+      <h1>
+        🔔 Alertas
+      </h1>
 
       <p class="subtitle">
         Próximos 30 dias
@@ -643,7 +1093,9 @@ function alertas() {
 
       ${
         eventos.length
-          ? eventos.map(evento => `
+
+          ? eventos.map(
+              evento => `
 
               <section
                 class="cow-card alerta"
@@ -672,27 +1124,36 @@ function alertas() {
                 <div class="right">
 
                   <strong>
-                    ${formatDate(evento.data)}
+                    ${formatDate(
+                      evento.data
+                    )}
                   </strong>
 
-                  <div class="${
-                    evento.dias <= 3
-                      ? 'urgente'
-                      : 'muted'
-                  }">
-                    ${textoDias(evento.dias)}
+                  <div
+                    class="${
+                      evento.dias <= 3
+                        ? 'urgente'
+                        : 'muted'
+                    }"
+                  >
+                    ${textoDias(
+                      evento.dias
+                    )}
                   </div>
 
                 </div>
 
               </section>
 
-            `).join('')
+            `
+            ).join('')
 
           : `
             <section class="card">
+
               ✅ Sem alertas para os
               próximos 30 dias.
+
             </section>
           `
       }
@@ -701,9 +1162,13 @@ function alertas() {
   `
 }
 
-/* ANIMAIS */
+
+/* =========================
+   ANIMAIS
+========================= */
 
 function animais() {
+
   app.innerHTML = `
     <main class="app">
 
@@ -714,7 +1179,9 @@ function animais() {
         ← Voltar
       </button>
 
-      <h1>🐄 Animais</h1>
+      <h1>
+        🐄 Animais
+      </h1>
 
       <p class="subtitle">
         ${cows.length} vacas
@@ -726,7 +1193,9 @@ function animais() {
         placeholder="Pesquisar vaca, touro ou raça…"
       >
 
-      <div id="lista"></div>
+      <div
+        id="lista"
+      ></div>
 
     </main>
   `
@@ -734,26 +1203,56 @@ function animais() {
   listar('')
 
   document
-    .querySelector('#pesquisa')
-    .addEventListener('input', e => {
-      listar(e.target.value)
-    })
+    .querySelector(
+      '#pesquisa'
+    )
+    .addEventListener(
+      'input',
+      event => {
+
+        listar(
+          event.target.value
+        )
+      }
+    )
 }
 
+
 function listar(texto) {
+
   const q =
-    texto.toLowerCase().trim()
+    texto
+      .toLowerCase()
+      .trim()
 
   const resultado =
-    cows.filter(vaca =>
-      `${vaca.id} ${vaca.touro} ${vaca.raca}`
-        .toLowerCase()
-        .includes(q)
+    cows.filter(
+      vaca =>
+        `${vaca.id} ${vaca.touro} ${vaca.raca}`
+          .toLowerCase()
+          .includes(q)
     )
 
-  document.querySelector('#lista')
-    .innerHTML =
-    resultado.map(vaca => `
+  const lista =
+    document
+      .querySelector(
+        '#lista'
+      )
+
+  if (!resultado.length) {
+
+    lista.innerHTML = `
+      <section class="card">
+        Nenhum animal encontrado.
+      </section>
+    `
+
+    return
+  }
+
+  lista.innerHTML =
+    resultado.map(
+      vaca => `
 
       <section
         class="cow-card"
@@ -773,38 +1272,58 @@ function listar(texto) {
           </div>
 
           <div class="muted">
-            Touro: ${vaca.touro}
+            Touro:
+            ${vaca.touro}
           </div>
 
         </div>
 
         <div class="right">
 
-          <strong>Parto</strong>
+          <strong>
+            Parto
+          </strong>
 
           <div>
-            ${formatDate(vaca.parto)}
+            ${formatDate(
+              vaca.parto
+            )}
           </div>
 
         </div>
 
       </section>
 
-    `).join('')
+    `
+    ).join('')
 }
 
-/* FICHA DA VACA */
 
-function detalhe(id, voltar = 'animais') {
+/* =========================
+   FICHA DA VACA
+========================= */
+
+function detalhe(
+  id,
+  voltar = 'animais'
+) {
+
   const vaca =
-    cows.find(v => v.id === id)
+    cows.find(
+      v =>
+        String(v.id) ===
+        String(id)
+    )
 
   if (!vaca) {
+
     inicio()
+
     return
   }
 
-  voltarDetalhe = voltar
+  voltarDetalhe =
+    voltar
 
   app.innerHTML = `
     <main class="app">
@@ -816,7 +1335,9 @@ function detalhe(id, voltar = 'animais') {
         ← Voltar
       </button>
 
-      <section class="card hero">
+      <section
+        class="card hero"
+      >
 
         <p class="muted">
           Animal
@@ -832,38 +1353,105 @@ function detalhe(id, voltar = 'animais') {
 
       </section>
 
-      <section class="card details">
+
+      <section
+        class="card details"
+      >
 
         <div>
-          <span>Última IA</span>
-          <strong>${formatDate(vaca.ia)}</strong>
+          <span>
+            Última IA
+          </span>
+
+          <strong>
+            ${formatDate(
+              vaca.ia
+            )}
+          </strong>
         </div>
 
-        <div>
-          <span>Touro</span>
-          <strong>${vaca.touro}</strong>
-        </div>
 
         <div>
-          <span>Raça</span>
-          <strong>${vaca.raca}</strong>
+          <span>
+            Touro
+          </span>
+
+          <strong>
+            ${vaca.touro}
+          </strong>
         </div>
 
-        <div>
-          <span>Parto previsto</span>
-          <strong>${formatDate(vaca.parto)}</strong>
-        </div>
 
         <div>
-          <span>Secagem</span>
-          <strong>${formatDate(vaca.secagem)}</strong>
+          <span>
+            Raça
+          </span>
+
+          <strong>
+            ${vaca.raca}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>
+            Parto previsto
+          </span>
+
+          <strong>
+            ${formatDate(
+              vaca.parto
+            )}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>
+            Secagem prevista
+          </span>
+
+          <strong>
+            ${formatDate(
+              vaca.secagem
+            )}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>
+            Última secagem
+          </span>
+
+          <strong>
+            ${formatDate(
+              vaca.ultimaSecagem
+            )}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>
+            Último parto
+          </span>
+
+          <strong>
+            ${formatDate(
+              vaca.ultimoParto
+            )}
+          </strong>
         </div>
 
       </section>
 
+
       <section class="card">
 
-        <h2>Registos</h2>
+        <h2>
+          Registos
+        </h2>
 
         <button
           data-action="secagem"
@@ -896,245 +1484,681 @@ function detalhe(id, voltar = 'animais') {
   `
 }
 
-/* CLIQUES */
 
-app.addEventListener('click', async event => {
-  const elemento =
-    event.target.closest('[data-action]')
+/* =========================
+   REGISTAR SECAGEM
+========================= */
 
-  if (!elemento) return
+async function registarSecagem(
+  animalNumero
+) {
 
-  const action =
-    elemento.dataset.action
-
-  if (action === 'login') {
-    await login()
-  }
-else if (action === 'forgot-password') {
-  await forgotPassword()
-}
-else if (action === 'update-password') {
-  await updatePassword()
-}
-  else if (action === 'confirmar-2fa') {
-    await confirmar2FA(
-      elemento.dataset.factor
-    )
-  }
-
-  else if (action === 'inicio') {
-    inicio()
-  }
-
-  else if (action === 'animais') {
-    animais()
-  }
-
-  else if (action === 'alertas') {
-    alertas()
-  }
-
-  else if (action === 'detalhe') {
-    detalhe(
-      elemento.dataset.id,
-      elemento.dataset.voltar
-    )
-  }
-
-  else if (action === 'voltar-detalhe') {
-    voltarDetalhe === 'alertas'
-      ? alertas()
-      : animais()
-  }
-
-  else if (action === 'logout') {
-    await supabase.auth.signOut()
-    loginScreen('Sessão terminada.')
-  }
-
-  else if (action === 'tentar-novamente') {
-    await carregarDados()
-  }
-
-  if (action === 'secagem') {
-  const animalId = elemento.dataset.id
-
-  const { data: animal, error: animalError } = await supabase
-    .from('animals')
-    .select('id, farm_id')
-    .eq('number', animalId)
-    .single()
+  const {
+    data: animal,
+    error: animalError
+  } =
+    await supabase
+      .from('animals')
+      .select(
+        'id, farm_id'
+      )
+      .eq(
+        'number',
+        animalNumero
+      )
+      .single()
 
   if (animalError) {
-    alert('Erro ao localizar a vaca: ' + animalError.message)
+
+    alert(
+      'Erro ao localizar a vaca: ' +
+      animalError.message
+    )
+
     return
   }
 
-  const hoje = new Date().toISOString().slice(0, 10)
+  const dataHoje =
+    new Date()
+      .toISOString()
+      .slice(0, 10)
 
-  const { error } = await supabase
-    .from('reproduction')
-    .insert({
-      farm_id: animal.farm_id,
-      animal_id: animal.id,
-      event_type: 'SECAGEM',
-      event_date: hoje
-    })
+  const dataSecagem =
+    prompt(
+      'Data da secagem (AAAA-MM-DD):',
+      dataHoje
+    )
+
+  if (!dataSecagem) {
+    return
+  }
+
+  const confirmar =
+    confirm(
+      `Confirmar secagem da vaca ${animalNumero} em ${dataSecagem}?`
+    )
+
+  if (!confirmar) {
+    return
+  }
+
+  const { error } =
+    await supabase
+      .from('reproduction')
+      .insert({
+
+        farm_id:
+          animal.farm_id,
+
+        animal_id:
+          animal.id,
+
+        event_type:
+          'SECAGEM',
+
+        event_date:
+          dataSecagem
+      })
 
   if (error) {
-    alert('Erro ao guardar a secagem: ' + error.message)
+
+    alert(
+      'Erro ao guardar a secagem: ' +
+      error.message
+    )
+
     return
   }
 
-  alert('✅ Secagem registada com sucesso.')
+  alert(
+    '✅ Secagem registada com sucesso.'
+  )
+
   await carregarDados()
 }
-  
-  
-  else if (action === 'parto') {
-  const animalNumero = elemento.dataset.id
 
-  const { data: animal, error: animalError } = await supabase
-    .from('animals')
-    .select('id, farm_id')
-    .eq('number', animalNumero)
-    .single()
+
+/* =========================
+   REGISTAR PARTO
+========================= */
+
+async function registarParto(
+  animalNumero
+) {
+
+  const {
+    data: animal,
+    error: animalError
+  } =
+    await supabase
+      .from('animals')
+      .select(
+        'id, farm_id'
+      )
+      .eq(
+        'number',
+        animalNumero
+      )
+      .single()
 
   if (animalError) {
-    alert('Erro ao localizar a vaca: ' + animalError.message)
+
+    alert(
+      'Erro ao localizar a vaca: ' +
+      animalError.message
+    )
+
     return
   }
 
-  const hoje = new Date().toISOString().slice(0, 10)
+  const dataHoje =
+    new Date()
+      .toISOString()
+      .slice(0, 10)
 
-const dataParto = prompt(
-  'Data do parto (AAAA-MM-DD):',
-  hoje
-)
+  const dataParto =
+    prompt(
+      'Data do parto (AAAA-MM-DD):',
+      dataHoje
+    )
 
-if (!dataParto) return
+  if (!dataParto) {
+    return
+  }
 
-const confirmar = confirm(
-  `Confirmar parto da vaca ${animalNumero} em ${dataParto}?`
-)
+  const confirmar =
+    confirm(
+      `Confirmar parto da vaca ${animalNumero} em ${dataParto}?`
+    )
 
-if (!confirmar) return
+  if (!confirmar) {
+    return
+  }
 
-  const { error: partoError } = await supabase
-    .from('reproduction')
-    .insert({
-      farm_id: animal.farm_id,
-      animal_id: animal.id,
-      event_type: 'PARTO',
-      event_date: dataParto
-    })
+  const {
+    error: partoError
+  } =
+    await supabase
+      .from('reproduction')
+      .insert({
+
+        farm_id:
+          animal.farm_id,
+
+        animal_id:
+          animal.id,
+
+        event_type:
+          'PARTO',
+
+        event_date:
+          dataParto
+      })
 
   if (partoError) {
-    alert('Erro ao guardar o parto: ' + partoError.message)
+
+    alert(
+      'Erro ao guardar o parto: ' +
+      partoError.message
+    )
+
     return
   }
 
-  const { error: animalUpdateError } = await supabase
-    .from('animals')
-    .update({
-      last_calving_date: dataParto
-    })
-    .eq('id', animal.id)
+  const {
+    error:
+      animalUpdateError
+  } =
+    await supabase
+      .from('animals')
+      .update({
+        last_calving_date:
+          dataParto
+      })
+      .eq(
+        'id',
+        animal.id
+      )
 
   if (animalUpdateError) {
-    alert('Parto guardado, mas houve erro ao atualizar a vaca: ' + animalUpdateError.message)
+
+    alert(
+      'Parto guardado, mas houve erro ao atualizar a vaca: ' +
+      animalUpdateError.message
+    )
+
     return
   }
 
-    alert('🐄 Parto registado com sucesso.')
+  alert(
+    '🐄 Parto registado com sucesso.'
+  )
+
   await carregarDados()
 }
 
-else if (action === 'inseminacao') {
-  const animalNumero = elemento.dataset.id
 
-  const { data: animal, error: animalError } = await supabase
-    .from('animals')
-    .select('id, farm_id')
-    .eq('number', animalNumero)
-    .single()
+/* =========================
+   NOVA INSEMINAÇÃO
+========================= */
+
+async function registarIA(
+  animalNumero
+) {
+
+  const {
+    data: animal,
+    error: animalError
+  } =
+    await supabase
+      .from('animals')
+      .select(
+        'id, farm_id'
+      )
+      .eq(
+        'number',
+        animalNumero
+      )
+      .single()
 
   if (animalError) {
-    alert('Erro ao localizar a vaca: ' + animalError.message)
+
+    alert(
+      'Erro ao localizar a vaca: ' +
+      animalError.message
+    )
+
     return
   }
 
-  const hoje = new Date().toISOString().slice(0, 10)
+  const dataHoje =
+    new Date()
+      .toISOString()
+      .slice(0, 10)
 
-  const dataIA = prompt(
-    'Data da inseminação (AAAA-MM-DD):',
-    hoje
+  const dataIA =
+    prompt(
+      'Data da inseminação (AAAA-MM-DD):',
+      dataHoje
+    )
+
+  if (!dataIA) {
+    return
+  }
+
+  const touro =
+    prompt(
+      'Nome do touro:',
+      ''
+    )
+
+  if (!touro) {
+    return
+  }
+
+  const confirmar =
+    confirm(
+      `Confirmar inseminação da vaca ${animalNumero} em ${dataIA} com o touro ${touro}?`
+    )
+
+  if (!confirmar) {
+    return
+  }
+
+  const dataPrevista =
+    new Date(
+      dataIA +
+      'T12:00:00'
+    )
+
+  dataPrevista.setDate(
+    dataPrevista.getDate() +
+    283
   )
 
-  if (!dataIA) return
+  const partoPrevisto =
+    dataPrevista
+      .toISOString()
+      .slice(0, 10)
 
-  const touro = prompt(
-    'Nome do touro:',
-    ''
+  const dataSecagem =
+    new Date(
+      dataPrevista
+    )
+
+  dataSecagem.setDate(
+    dataSecagem.getDate() -
+    60
   )
 
-  if (!touro) return
+  const secagemPrevista =
+    dataSecagem
+      .toISOString()
+      .slice(0, 10)
 
-  const confirmar = confirm(
-    `Confirmar inseminação da vaca ${animalNumero} em ${dataIA} com o touro ${touro}?`
-  )
+  const { error } =
+    await supabase
+      .from('reproduction')
+      .insert({
 
-  if (!confirmar) return
+        farm_id:
+          animal.farm_id,
 
-  const dataPrevista = new Date(dataIA + 'T12:00:00')
-  dataPrevista.setDate(dataPrevista.getDate() + 283)
+        animal_id:
+          animal.id,
 
-  const partoPrevisto = dataPrevista
-    .toISOString()
-    .slice(0, 10)
+        event_type:
+          'IA',
 
-  const dataSecagem = new Date(dataPrevista)
-  dataSecagem.setDate(dataSecagem.getDate() - 60)
+        event_date:
+          dataIA,
 
-  const secagemPrevista = dataSecagem
-    .toISOString()
-    .slice(0, 10)
+        bull:
+          touro,
 
-  const { error } = await supabase
-    .from('reproduction')
-    .insert({
-      farm_id: animal.farm_id,
-      animal_id: animal.id,
-      event_type: 'IA',
-      event_date: dataIA,
-      bull: touro,
-      expected_calving: partoPrevisto,
-      expected_dry_off: secagemPrevista
-    })
+        expected_calving:
+          partoPrevisto,
+
+        expected_dry_off:
+          secagemPrevista
+      })
 
   if (error) {
-    alert('Erro ao guardar a inseminação: ' + error.message)
+
+    alert(
+      'Erro ao guardar a inseminação: ' +
+      error.message
+    )
+
     return
   }
 
-  alert('✅ Inseminação registada com sucesso.')
+  alert(
+    '✅ Inseminação registada com sucesso.'
+  )
+
   await carregarDados()
 }
-})
 
-/* ARRANQUE */
+
+/* =========================
+   CLIQUES
+========================= */
+
+app.addEventListener(
+  'click',
+  async event => {
+
+    const elemento =
+      event.target.closest(
+        '[data-action]'
+      )
+
+    if (!elemento) {
+      return
+    }
+
+    const action =
+      elemento.dataset.action
+
+
+    if (
+      action ===
+      'login'
+    ) {
+
+      await login()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'forgot-password'
+    ) {
+
+      await forgotPassword()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'update-password'
+    ) {
+
+      await updatePassword()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'confirmar-2fa'
+    ) {
+
+      await confirmar2FA(
+        elemento.dataset.factor
+      )
+
+      return
+    }
+
+
+    if (
+      action ===
+      'inicio'
+    ) {
+
+      inicio()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'animais'
+    ) {
+
+      animais()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'alertas'
+    ) {
+
+      alertas()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'detalhe'
+    ) {
+
+      detalhe(
+        elemento.dataset.id,
+        elemento.dataset.voltar
+      )
+
+      return
+    }
+
+
+    if (
+      action ===
+      'voltar-detalhe'
+    ) {
+
+      voltarDetalhe ===
+      'alertas'
+
+        ? alertas()
+
+        : animais()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'logout'
+    ) {
+
+      await supabase.auth
+        .signOut()
+
+      loginScreen(
+        'Sessão terminada.'
+      )
+
+      return
+    }
+
+
+    if (
+      action ===
+      'tentar-novamente'
+    ) {
+
+      await carregarDados()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'secagem'
+    ) {
+
+      await registarSecagem(
+        elemento.dataset.id
+      )
+
+      return
+    }
+
+
+    if (
+      action ===
+      'parto'
+    ) {
+
+      await registarParto(
+        elemento.dataset.id
+      )
+
+      return
+    }
+
+
+    if (
+      action ===
+      'inseminacao'
+    ) {
+
+      await registarIA(
+        elemento.dataset.id
+      )
+
+      return
+    }
+  }
+)
+
+
+/* =========================
+   EVENTOS DE AUTENTICAÇÃO
+========================= */
+
+supabase.auth.onAuthStateChange(
+  async (
+    event,
+    session
+  ) => {
+
+    if (
+      event ===
+      'PASSWORD_RECOVERY'
+    ) {
+
+      recoveryMode = true
+
+      recoveryScreen()
+
+      return
+    }
+
+
+    if (
+      event ===
+      'SIGNED_OUT'
+    ) {
+
+      if (!recoveryMode) {
+
+        loginScreen()
+      }
+
+      return
+    }
+
+
+    if (
+      event ===
+      'SIGNED_IN' &&
+      session &&
+      !recoveryMode
+    ) {
+
+      /*
+        O arranque normal trata
+        da abertura da aplicação.
+        Não é necessário duplicar
+        carregarDados aqui.
+      */
+
+      return
+    }
+  }
+)
+
+
+/* =========================
+   ARRANQUE
+========================= */
 
 async function arrancar() {
-  const {
-    data: { session }
-  } = await supabase.auth.getSession()
 
-  if (!session) {
-    loginScreen()
+  /*
+    Links antigos do Supabase podem
+    trazer type=recovery no URL.
+  */
+
+  const hash =
+    new URLSearchParams(
+      window.location.hash
+        .replace(
+          /^#/,
+          ''
+        )
+    )
+
+  const query =
+    new URLSearchParams(
+      window.location.search
+    )
+
+  const linkRecuperacao =
+    hash.get('type') ===
+      'recovery' ||
+    query.get('type') ===
+      'recovery'
+
+  const {
+    data: {
+      session
+    }
+  } =
+    await supabase.auth
+      .getSession()
+
+
+  if (
+    linkRecuperacao &&
+    session
+  ) {
+
+    recoveryMode = true
+
+    recoveryScreen()
+
     return
   }
+
+
+  if (!session) {
+
+    loginScreen()
+
+    return
+  }
+
 
   await verificarSeguranca()
 }
+
 
 arrancar()
