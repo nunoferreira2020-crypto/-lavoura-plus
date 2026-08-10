@@ -112,6 +112,24 @@ function textoDias(dias) {
 }
 
 
+function nomeEvento(tipo) {
+
+  if (tipo === 'IA') {
+    return '🧬 Inseminação'
+  }
+
+  if (tipo === 'SECAGEM') {
+    return '🟠 Secagem'
+  }
+
+  if (tipo === 'PARTO') {
+    return '🔵 Parto'
+  }
+
+  return tipo || 'Evento'
+}
+
+
 /* =========================
    LOGIN
 ========================= */
@@ -236,7 +254,7 @@ async function login() {
 
 
 /* =========================
-   RECUPERAR PALAVRA-PASSE
+   RECUPERAÇÃO DA PASSWORD
 ========================= */
 
 async function forgotPassword() {
@@ -403,12 +421,11 @@ async function updatePassword() {
 
   recoveryMode = false
 
-  window.history
-    .replaceState(
-      {},
-      document.title,
-      window.location.pathname
-    )
+  window.history.replaceState(
+    {},
+    document.title,
+    window.location.pathname
+  )
 
   setTimeout(
     async () => {
@@ -624,7 +641,7 @@ async function confirmar2FA(
 
 
 /* =========================
-   DADOS DO SUPABASE
+   CARREGAR DADOS
 ========================= */
 
 async function carregarDados() {
@@ -710,6 +727,12 @@ async function carregarDados() {
                 r.animal_id ===
                 animal.id
             )
+            .sort(
+              (a, b) =>
+                b.event_date.localeCompare(
+                  a.event_date
+                )
+            )
 
         const ultimaIA =
           eventosAnimal.find(
@@ -742,12 +765,6 @@ async function carregarDados() {
             ?.expected_calving ||
           null
 
-        /*
-          Se já houve uma secagem
-          depois da IA, deixa de aparecer
-          como secagem pendente.
-        */
-
         if (
           ultimaSecagem &&
           ultimaIA &&
@@ -758,12 +775,6 @@ async function carregarDados() {
           secagemPrevista =
             null
         }
-
-        /*
-          Se já houve parto
-          depois da IA, deixa de aparecer
-          parto/secagem dessa gestação.
-        */
 
         if (
           ultimoParto &&
@@ -823,7 +834,10 @@ async function carregarDados() {
 
           notas:
             animal.notes ||
-            ''
+            '',
+
+          eventos:
+            eventosAnimal
         }
       }
     )
@@ -954,6 +968,18 @@ function inicio() {
   const eventos =
     obterAlertas()
 
+  const comIA =
+    cows.filter(
+      vaca =>
+        vaca.ia
+    ).length
+
+  const comPartoPrevisto =
+    cows.filter(
+      vaca =>
+        vaca.parto
+    ).length
+
   app.innerHTML = `
     <main class="app">
 
@@ -968,6 +994,7 @@ function inicio() {
       <h2>
         Painel Principal
       </h2>
+
 
       <section class="card">
 
@@ -1024,6 +1051,11 @@ function inicio() {
           da produção de leite.
         </p>
 
+        <p class="muted">
+          Módulo de produção será
+          ligado aos registos de leite.
+        </p>
+
       </section>
 
 
@@ -1034,9 +1066,24 @@ function inicio() {
         </h2>
 
         <p>
-          Inseminações, diagnósticos,
-          secagens e partos.
+          <strong>
+            ${comIA}
+          </strong>
+          animais com IA registada
         </p>
+
+        <p>
+          <strong>
+            ${comPartoPrevisto}
+          </strong>
+          partos previstos
+        </p>
+
+        <button
+          data-action="reproducao"
+        >
+          Ver reprodução
+        </button>
 
       </section>
 
@@ -1164,6 +1211,283 @@ function alertas() {
 
 
 /* =========================
+   REPRODUÇÃO
+========================= */
+
+function reproducao() {
+
+  const ultimasIA =
+    cows
+      .filter(
+        vaca =>
+          vaca.ia
+      )
+      .sort(
+        (a, b) =>
+          b.ia.localeCompare(
+            a.ia
+          )
+      )
+
+  const proximasSecagens =
+    cows
+      .filter(
+        vaca =>
+          vaca.secagem
+      )
+      .sort(
+        (a, b) =>
+          a.secagem.localeCompare(
+            b.secagem
+          )
+      )
+
+  const proximosPartos =
+    cows
+      .filter(
+        vaca =>
+          vaca.parto
+      )
+      .sort(
+        (a, b) =>
+          a.parto.localeCompare(
+            b.parto
+          )
+      )
+
+  app.innerHTML = `
+    <main class="app">
+
+      <button
+        class="back"
+        data-action="inicio"
+      >
+        ← Voltar
+      </button>
+
+      <h1>
+        📅 Reprodução
+      </h1>
+
+      <p class="subtitle">
+        Gestão reprodutiva do rebanho
+      </p>
+
+
+      <section class="card">
+
+        <h2>
+          Resumo
+        </h2>
+
+        <p>
+          🧬
+          <strong>
+            ${ultimasIA.length}
+          </strong>
+          animais com IA
+        </p>
+
+        <p>
+          🟠
+          <strong>
+            ${proximasSecagens.length}
+          </strong>
+          secagens previstas
+        </p>
+
+        <p>
+          🔵
+          <strong>
+            ${proximosPartos.length}
+          </strong>
+          partos previstos
+        </p>
+
+      </section>
+
+
+      <h2>
+        🧬 Últimas IA
+      </h2>
+
+      ${
+        ultimasIA.length
+
+          ? ultimasIA
+            .slice(0, 15)
+            .map(
+              vaca => `
+
+              <section
+                class="cow-card"
+                data-action="detalhe"
+                data-id="${vaca.id}"
+                data-voltar="reproducao"
+              >
+
+                <div>
+
+                  <strong>
+                    🐄 ${vaca.id}
+                  </strong>
+
+                  <div class="muted">
+                    Touro:
+                    ${vaca.touro}
+                  </div>
+
+                </div>
+
+                <div class="right">
+
+                  <strong>
+                    ${formatDate(
+                      vaca.ia
+                    )}
+                  </strong>
+
+                </div>
+
+              </section>
+
+            `
+            ).join('')
+
+          : `
+            <section class="card">
+              Sem inseminações registadas.
+            </section>
+          `
+      }
+
+
+      <h2>
+        🟠 Próximas secagens
+      </h2>
+
+      ${
+        proximasSecagens.length
+
+          ? proximasSecagens.map(
+              vaca => `
+
+              <section
+                class="cow-card"
+                data-action="detalhe"
+                data-id="${vaca.id}"
+                data-voltar="reproducao"
+              >
+
+                <div>
+
+                  <strong>
+                    🐄 ${vaca.id}
+                  </strong>
+
+                  <div class="muted">
+                    ${vaca.raca}
+                  </div>
+
+                </div>
+
+                <div class="right">
+
+                  <strong>
+                    ${formatDate(
+                      vaca.secagem
+                    )}
+                  </strong>
+
+                  <div class="muted">
+                    ${textoDias(
+                      diasAte(
+                        vaca.secagem
+                      )
+                    )}
+                  </div>
+
+                </div>
+
+              </section>
+
+            `
+            ).join('')
+
+          : `
+            <section class="card">
+              Sem secagens previstas.
+            </section>
+          `
+      }
+
+
+      <h2>
+        🔵 Próximos partos
+      </h2>
+
+      ${
+        proximosPartos.length
+
+          ? proximosPartos.map(
+              vaca => `
+
+              <section
+                class="cow-card"
+                data-action="detalhe"
+                data-id="${vaca.id}"
+                data-voltar="reproducao"
+              >
+
+                <div>
+
+                  <strong>
+                    🐄 ${vaca.id}
+                  </strong>
+
+                  <div class="muted">
+                    Touro:
+                    ${vaca.touro}
+                  </div>
+
+                </div>
+
+                <div class="right">
+
+                  <strong>
+                    ${formatDate(
+                      vaca.parto
+                    )}
+                  </strong>
+
+                  <div class="muted">
+                    ${textoDias(
+                      diasAte(
+                        vaca.parto
+                      )
+                    )}
+                  </div>
+
+                </div>
+
+              </section>
+
+            `
+            ).join('')
+
+          : `
+            <section class="card">
+              Sem partos previstos.
+            </section>
+          `
+      }
+
+    </main>
+  `
+}
+
+
+/* =========================
    ANIMAIS
 ========================= */
 
@@ -1190,7 +1514,7 @@ function animais() {
       <input
         id="pesquisa"
         class="search"
-        placeholder="Pesquisar vaca, touro ou raça…"
+        placeholder="Pesquisar vaca, touro, raça ou estado…"
       >
 
       <div
@@ -1228,7 +1552,7 @@ function listar(texto) {
   const resultado =
     cows.filter(
       vaca =>
-        `${vaca.id} ${vaca.touro} ${vaca.raca}`
+        `${vaca.id} ${vaca.touro} ${vaca.raca} ${vaca.status}`
           .toLowerCase()
           .includes(q)
     )
@@ -1325,6 +1649,10 @@ function detalhe(
   voltarDetalhe =
     voltar
 
+  const historico =
+    vaca.eventos
+      .slice(0, 15)
+
   app.innerHTML = `
     <main class="app">
 
@@ -1349,6 +1677,11 @@ function detalhe(
 
         <p>
           ${vaca.raca}
+        </p>
+
+        <p class="muted">
+          Estado:
+          ${vaca.status}
         </p>
 
       </section>
@@ -1480,13 +1813,69 @@ function detalhe(
 
       </section>
 
+
+      <h2>
+        📋 Histórico reprodutivo
+      </h2>
+
+      ${
+        historico.length
+
+          ? historico.map(
+              evento => `
+
+              <section class="cow-card">
+
+                <div>
+
+                  <strong>
+                    ${nomeEvento(
+                      evento.event_type
+                    )}
+                  </strong>
+
+                  ${
+                    evento.bull
+                      ? `
+                        <div class="muted">
+                          Touro:
+                          ${evento.bull}
+                        </div>
+                      `
+                      : ''
+                  }
+
+                </div>
+
+                <div class="right">
+
+                  <strong>
+                    ${formatDate(
+                      evento.event_date
+                    )}
+                  </strong>
+
+                </div>
+
+              </section>
+
+            `
+            ).join('')
+
+          : `
+            <section class="card">
+              Sem histórico reprodutivo.
+            </section>
+          `
+      }
+
     </main>
   `
 }
 
 
 /* =========================
-   REGISTAR SECAGEM
+   SECAGEM
 ========================= */
 
 async function registarSecagem(
@@ -1579,7 +1968,7 @@ async function registarSecagem(
 
 
 /* =========================
-   REGISTAR PARTO
+   PARTO
 ========================= */
 
 async function registarParto(
@@ -1699,7 +2088,7 @@ async function registarParto(
 
 
 /* =========================
-   NOVA INSEMINAÇÃO
+   INSEMINAÇÃO
 ========================= */
 
 async function registarIA(
@@ -1943,6 +2332,17 @@ app.addEventListener(
 
     if (
       action ===
+      'reproducao'
+    ) {
+
+      reproducao()
+
+      return
+    }
+
+
+    if (
+      action ===
       'detalhe'
     ) {
 
@@ -1960,12 +2360,26 @@ app.addEventListener(
       'voltar-detalhe'
     ) {
 
-      voltarDetalhe ===
-      'alertas'
+      if (
+        voltarDetalhe ===
+        'alertas'
+      ) {
 
-        ? alertas()
+        alertas()
+      }
 
-        : animais()
+      else if (
+        voltarDetalhe ===
+        'reproducao'
+      ) {
+
+        reproducao()
+      }
+
+      else {
+
+        animais()
+      }
 
       return
     }
@@ -2040,7 +2454,7 @@ app.addEventListener(
 
 
 /* =========================
-   EVENTOS DE AUTENTICAÇÃO
+   AUTENTICAÇÃO
 ========================= */
 
 supabase.auth.onAuthStateChange(
@@ -2083,13 +2497,6 @@ supabase.auth.onAuthStateChange(
       !recoveryMode
     ) {
 
-      /*
-        O arranque normal trata
-        da abertura da aplicação.
-        Não é necessário duplicar
-        carregarDados aqui.
-      */
-
       return
     }
   }
@@ -2101,11 +2508,6 @@ supabase.auth.onAuthStateChange(
 ========================= */
 
 async function arrancar() {
-
-  /*
-    Links antigos do Supabase podem
-    trazer type=recovery no URL.
-  */
 
   const hash =
     new URLSearchParams(
