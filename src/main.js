@@ -6405,7 +6405,15 @@ app.addEventListener(
 
       return
     }
+if (
+  action ===
+  'definicoes'
+) {
 
+  definicoesScreen()
+
+  return
+}
 
     if (
       action ===
