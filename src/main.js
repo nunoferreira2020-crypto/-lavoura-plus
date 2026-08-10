@@ -1504,7 +1504,8 @@ function obterDiagnosticosPendentes() {
 
   vaca
 })
-
+    }
+  )
 
   return diagnosticos.sort(
     (a, b) =>
