@@ -6869,7 +6869,7 @@ observadorBarra.observe(
 atualizarBarraInferior()
 
 document.addEventListener('click', event => {
-  const item = event.target.closest('.bottom-nav-item')
+  const item = event.target.closest('.bottom-nav-item, [data-action="definicoes"], [data-action="mais"]')
 
   if (!item) return
 
