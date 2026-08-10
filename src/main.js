@@ -7,6 +7,9 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   'sb_publishable_b86gGWtrtFM2MVhU_-h10g_5vttckRp'
 
+const FARM_ID =
+  '72bb5d54-f614-4394-8da9-7113a8e48a29'
+
 const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_KEY,
@@ -26,6 +29,10 @@ const app =
 
 let cows = []
 
+let milkRecords = []
+
+let milkMonthly = []
+
 let voltarDetalhe =
   'animais'
 
@@ -34,7 +41,7 @@ let recoveryMode =
 
 
 /* =========================
-   DATAS
+   UTILIDADES
 ========================= */
 
 function formatDate(data) {
@@ -47,6 +54,14 @@ function formatDate(data) {
     data.split('-')
 
   return `${dia}/${mes}/${ano}`
+}
+
+
+function hojeISO() {
+
+  return new Date()
+    .toISOString()
+    .slice(0, 10)
 }
 
 
@@ -127,6 +142,59 @@ function nomeEvento(tipo) {
   }
 
   return tipo || 'Evento'
+}
+
+
+function numero(
+  valor,
+  casas = 1
+) {
+
+  const n =
+    Number(valor)
+
+  if (
+    valor === null ||
+    valor === undefined ||
+    Number.isNaN(n)
+  ) {
+    return '—'
+  }
+
+  return n.toLocaleString(
+    'pt-PT',
+    {
+      minimumFractionDigits:
+        casas,
+      maximumFractionDigits:
+        casas
+    }
+  )
+}
+
+
+function euros(
+  valor
+) {
+
+  const n =
+    Number(valor)
+
+  if (
+    valor === null ||
+    valor === undefined ||
+    Number.isNaN(n)
+  ) {
+    return '—'
+  }
+
+  return n.toLocaleString(
+    'pt-PT',
+    {
+      style: 'currency',
+      currency: 'EUR'
+    }
+  )
 }
 
 
@@ -254,7 +322,7 @@ async function login() {
 
 
 /* =========================
-   RECUPERAÇÃO DA PASSWORD
+   RECUPERAÇÃO PASSWORD
 ========================= */
 
 async function forgotPassword() {
@@ -321,17 +389,11 @@ function recoveryScreen() {
           Alterar palavra-passe
         </h2>
 
-        <p>
-          Introduza a nova palavra-passe
-          que pretende utilizar.
-        </p>
-
         <input
           id="newPassword"
           class="search"
           type="password"
           placeholder="Nova palavra-passe"
-          autocomplete="new-password"
         >
 
         <input
@@ -339,7 +401,6 @@ function recoveryScreen() {
           class="search"
           type="password"
           placeholder="Confirmar palavra-passe"
-          autocomplete="new-password"
         >
 
         <button
@@ -448,15 +509,11 @@ async function verificarSeguranca() {
 
   app.innerHTML = `
     <main class="app">
-
       <section class="card">
-
         <h2>
           🔐 A verificar segurança…
         </h2>
-
       </section>
-
     </main>
   `
 
@@ -537,18 +594,12 @@ async function pedirCodigo2FA() {
           Código de segurança
         </h2>
 
-        <p>
-          Abra o Google Authenticator
-          e introduza o código atual.
-        </p>
-
         <input
           id="codigo2fa"
           class="search"
           inputmode="numeric"
           maxlength="6"
           placeholder="000000"
-          autocomplete="one-time-code"
         >
 
         <button
@@ -652,15 +703,11 @@ async function carregarDados() {
 
   app.innerHTML = `
     <main class="app">
-
       <section class="card">
-
         <h2>
           🐄 A carregar a exploração…
         </h2>
-
       </section>
-
     </main>
   `
 
@@ -715,6 +762,69 @@ async function carregarDados() {
 
     return
   }
+
+  const milk =
+    await supabase
+      .from('milk_records')
+      .select(`
+        id,
+        farm_id,
+        record_date,
+        liters,
+        milking_cows,
+        price_per_liter,
+        fat,
+        protein,
+        somatic_cells,
+        ufc,
+        urea,
+        lactose,
+        created_at
+      `)
+      .eq(
+        'farm_id',
+        FARM_ID
+      )
+      .order(
+        'record_date',
+        {
+          ascending: false
+        }
+      )
+      .limit(60)
+
+  if (milk.error) {
+
+    erroDados(
+      milk.error.message
+    )
+
+    return
+  }
+
+  milkRecords =
+    milk.data || []
+
+  const monthly =
+    await supabase
+      .from('milk_monthly_summary')
+      .select('*')
+      .eq(
+        'farm_id',
+        FARM_ID
+      )
+      .order(
+        'month',
+        {
+          ascending: false
+        }
+      )
+      .limit(12)
+
+  milkMonthly =
+    monthly.error
+      ? []
+      : monthly.data || []
 
   cows =
     animals.data.map(
@@ -799,22 +909,16 @@ async function carregarDados() {
             animal.number,
 
           raca:
-            animal.breed ||
-            '—',
+            animal.breed || '—',
 
           status:
-            animal.status ||
-            '—',
+            animal.status || '—',
 
           ia:
-            ultimaIA
-              ?.event_date ||
-            null,
+            ultimaIA?.event_date || null,
 
           touro:
-            ultimaIA
-              ?.bull ||
-            '—',
+            ultimaIA?.bull || '—',
 
           parto:
             partoPrevisto,
@@ -823,18 +927,13 @@ async function carregarDados() {
             secagemPrevista,
 
           ultimaSecagem:
-            ultimaSecagem
-              ?.event_date ||
-            null,
+            ultimaSecagem?.event_date || null,
 
           ultimoParto:
-            ultimoParto
-              ?.event_date ||
-            null,
+            ultimoParto?.event_date || null,
 
           notas:
-            animal.notes ||
-            '',
+            animal.notes || '',
 
           eventos:
             eventosAnimal
@@ -902,18 +1001,10 @@ function obterAlertas() {
         ) {
 
           eventos.push({
-
-            tipo:
-              'Secagem',
-
-            icon:
-              '🟠',
-
-            data:
-              vaca.secagem,
-
+            tipo: 'Secagem',
+            icon: '🟠',
+            data: vaca.secagem,
             dias,
-
             vaca
           })
         }
@@ -932,18 +1023,10 @@ function obterAlertas() {
         ) {
 
           eventos.push({
-
-            tipo:
-              'Parto',
-
-            icon:
-              '🔵',
-
-            data:
-              vaca.parto,
-
+            tipo: 'Parto',
+            icon: '🔵',
+            data: vaca.parto,
             dias,
-
             vaca
           })
         }
@@ -979,6 +1062,16 @@ function inicio() {
       vaca =>
         vaca.parto
     ).length
+
+  const leite =
+    milkRecords[0] || null
+
+  const litrosVaca =
+    leite &&
+    leite.milking_cows
+      ? Number(leite.liters) /
+        Number(leite.milking_cows)
+      : null
 
   app.innerHTML = `
     <main class="app">
@@ -1046,15 +1139,42 @@ function inicio() {
           🥛 Produção
         </h2>
 
-        <p>
-          Registo e acompanhamento
-          da produção de leite.
-        </p>
+        ${
+          leite
+            ? `
+              <p>
+                <strong>
+                  ${numero(
+                    leite.liters,
+                    0
+                  )} L
+                </strong>
+                em
+                ${formatDate(
+                  leite.record_date
+                )}
+              </p>
 
-        <p class="muted">
-          Módulo de produção será
-          ligado aos registos de leite.
-        </p>
+              <p>
+                ${numero(
+                  litrosVaca,
+                  1
+                )}
+                L/vaca/dia
+              </p>
+            `
+            : `
+              <p>
+                Sem produção registada.
+              </p>
+            `
+        }
+
+        <button
+          data-action="producao"
+        >
+          Ver produção
+        </button>
 
       </section>
 
@@ -1094,10 +1214,6 @@ function inicio() {
           🔐 Conta
         </h2>
 
-        <p>
-          Sessão protegida.
-        </p>
-
         <button
           data-action="logout"
         >
@@ -1112,13 +1228,54 @@ function inicio() {
 
 
 /* =========================
-   LISTA DE ALERTAS
+   PRODUÇÃO
 ========================= */
 
-function alertas() {
+function producao() {
 
-  const eventos =
-    obterAlertas()
+  const ultimo =
+    milkRecords[0] || null
+
+  const litros =
+    ultimo
+      ? Number(ultimo.liters)
+      : null
+
+  const vacas =
+    ultimo
+      ? Number(
+          ultimo.milking_cows
+        )
+      : null
+
+  const preco =
+    ultimo
+      ? Number(
+          ultimo.price_per_liter
+        )
+      : null
+
+  const litrosVaca =
+    litros &&
+    vacas
+      ? litros / vacas
+      : null
+
+  const receitaDia =
+    litros &&
+    preco
+      ? litros * preco
+      : null
+
+  const receitaMes =
+    receitaDia
+      ? receitaDia * 30
+      : null
+
+  const litrosMes =
+    litros
+      ? litros * 30
+      : null
 
   app.innerHTML = `
     <main class="app">
@@ -1131,82 +1288,553 @@ function alertas() {
       </button>
 
       <h1>
-        🔔 Alertas
+        🥛 Produção
       </h1>
 
       <p class="subtitle">
-        Próximos 30 dias
+        Produção e qualidade do leite
       </p>
 
+
       ${
-        eventos.length
+        ultimo
+          ? `
+            <section class="card hero">
 
-          ? eventos.map(
-              evento => `
+              <p class="muted">
+                Produção mais recente
+              </p>
 
-              <section
-                class="cow-card alerta"
-                data-action="detalhe"
-                data-id="${evento.vaca.id}"
-                data-voltar="alertas"
-              >
+              <h1>
+                ${numero(
+                  litros,
+                  0
+                )} L
+              </h1>
 
-                <div>
+              <p>
+                ${formatDate(
+                  ultimo.record_date
+                )}
+              </p>
 
-                  <strong>
-                    ${evento.icon}
-                    ${evento.tipo}
-                  </strong>
+            </section>
 
-                  <div>
-                    🐄 ${evento.vaca.id}
-                  </div>
 
-                  <div class="muted">
-                    ${evento.vaca.raca}
-                  </div>
+            <section class="card details">
 
-                </div>
+              <div>
+                <span>
+                  Vacas em lactação
+                </span>
 
-                <div class="right">
+                <strong>
+                  ${vacas || '—'}
+                </strong>
+              </div>
 
-                  <strong>
-                    ${formatDate(
-                      evento.data
-                    )}
-                  </strong>
 
-                  <div
-                    class="${
-                      evento.dias <= 3
-                        ? 'urgente'
-                        : 'muted'
-                    }"
-                  >
-                    ${textoDias(
-                      evento.dias
-                    )}
-                  </div>
+              <div>
+                <span>
+                  Litros/vaca/dia
+                </span>
 
-                </div>
+                <strong>
+                  ${numero(
+                    litrosVaca,
+                    1
+                  )} L
+                </strong>
+              </div>
 
-              </section>
 
-            `
-            ).join('')
+              <div>
+                <span>
+                  Preço/L
+                </span>
 
-          : `
+                <strong>
+                  ${euros(
+                    preco
+                  )}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Receita diária
+                </span>
+
+                <strong>
+                  ${euros(
+                    receitaDia
+                  )}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Estimativa 30 dias
+                </span>
+
+                <strong>
+                  ${euros(
+                    receitaMes
+                  )}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Litros em 30 dias
+                </span>
+
+                <strong>
+                  ${numero(
+                    litrosMes,
+                    0
+                  )} L
+                </strong>
+              </div>
+
+            </section>
+
+
             <section class="card">
 
-              ✅ Sem alertas para os
-              próximos 30 dias.
+              <h2>
+                🧪 Qualidade
+              </h2>
 
+              <p>
+                Gordura:
+                <strong>
+                  ${
+                    ultimo.fat !== null
+                      ? numero(
+                          ultimo.fat,
+                          2
+                        ) + '%'
+                      : '—'
+                  }
+                </strong>
+              </p>
+
+              <p>
+                Proteína:
+                <strong>
+                  ${
+                    ultimo.protein !== null
+                      ? numero(
+                          ultimo.protein,
+                          2
+                        ) + '%'
+                      : '—'
+                  }
+                </strong>
+              </p>
+
+              <p>
+                Células somáticas:
+                <strong>
+                  ${numero(
+                    ultimo.somatic_cells,
+                    0
+                  )}
+                </strong>
+              </p>
+
+              <p>
+                UFC:
+                <strong>
+                  ${numero(
+                    ultimo.ufc,
+                    0
+                  )}
+                </strong>
+              </p>
+
+            </section>
+          `
+          : `
+            <section class="card">
+              Ainda não existem registos
+              de produção.
             </section>
           `
       }
 
+
+      <section class="card">
+
+        <h2>
+          ➕ Novo registo
+        </h2>
+
+        <p>
+          Registar ou atualizar
+          a produção do dia.
+        </p>
+
+        <button
+          data-action="registar-producao"
+        >
+          Registar produção
+        </button>
+
+      </section>
+
+
+      <h2>
+        📋 Histórico
+      </h2>
+
+      ${
+        milkRecords.length
+          ? milkRecords
+            .slice(0, 15)
+            .map(
+              registo => {
+
+                const lpv =
+                  registo.milking_cows
+                    ? Number(
+                        registo.liters
+                      ) /
+                      Number(
+                        registo.milking_cows
+                      )
+                    : null
+
+                return `
+                  <section class="cow-card">
+
+                    <div>
+
+                      <strong>
+                        🥛
+                        ${numero(
+                          registo.liters,
+                          0
+                        )} L
+                      </strong>
+
+                      <div class="muted">
+                        ${
+                          registo.milking_cows
+                            || '—'
+                        }
+                        vacas
+                      </div>
+
+                    </div>
+
+                    <div class="right">
+
+                      <strong>
+                        ${formatDate(
+                          registo.record_date
+                        )}
+                      </strong>
+
+                      <div class="muted">
+                        ${numero(
+                          lpv,
+                          1
+                        )}
+                        L/vaca
+                      </div>
+
+                    </div>
+
+                  </section>
+                `
+              }
+            )
+            .join('')
+          : `
+            <section class="card">
+              Sem histórico.
+            </section>
+          `
+      }
+
+
+      ${
+        milkMonthly.length
+          ? `
+            <h2>
+              📊 Resumo mensal
+            </h2>
+
+            ${
+              milkMonthly
+                .slice(0, 6)
+                .map(
+                  mes => `
+
+                  <section class="card">
+
+                    <strong>
+                      ${formatDate(
+                        mes.month
+                      )}
+                    </strong>
+
+                    <p>
+                      Total:
+                      <strong>
+                        ${numero(
+                          mes.total_liters,
+                          0
+                        )} L
+                      </strong>
+                    </p>
+
+                    <p>
+                      Média/dia:
+                      <strong>
+                        ${numero(
+                          mes.avg_liters_per_recorded_day,
+                          0
+                        )} L
+                      </strong>
+                    </p>
+
+                    <p>
+                      Média/vaca:
+                      <strong>
+                        ${numero(
+                          mes.avg_liters_per_cow,
+                          1
+                        )} L
+                      </strong>
+                    </p>
+
+                    <p>
+                      Receita:
+                      <strong>
+                        ${euros(
+                          mes.milk_revenue
+                        )}
+                      </strong>
+                    </p>
+
+                  </section>
+
+                `
+                )
+                .join('')
+            }
+          `
+          : ''
+      }
+
     </main>
   `
+}
+
+
+/* =========================
+   REGISTAR PRODUÇÃO
+========================= */
+
+async function registarProducao() {
+
+  const data =
+    prompt(
+      'Data da produção (AAAA-MM-DD):',
+      hojeISO()
+    )
+
+  if (!data) {
+    return
+  }
+
+  const litrosTexto =
+    prompt(
+      'Litros produzidos:',
+      milkRecords[0]
+        ?.liters || '700'
+    )
+
+  if (!litrosTexto) {
+    return
+  }
+
+  const vacasTexto =
+    prompt(
+      'Número de vacas em lactação:',
+      milkRecords[0]
+        ?.milking_cows || '33'
+    )
+
+  if (!vacasTexto) {
+    return
+  }
+
+  const precoTexto =
+    prompt(
+      'Preço por litro (€):',
+      milkRecords[0]
+        ?.price_per_liter || '0.42'
+    )
+
+  if (!precoTexto) {
+    return
+  }
+
+  const litros =
+    Number(
+      litrosTexto
+        .replace(',', '.')
+    )
+
+  const vacas =
+    Number(
+      vacasTexto
+        .replace(',', '.')
+    )
+
+  const preco =
+    Number(
+      precoTexto
+        .replace(',', '.')
+    )
+
+  if (
+    !litros ||
+    litros <= 0 ||
+    !vacas ||
+    vacas <= 0 ||
+    !preco ||
+    preco <= 0
+  ) {
+
+    alert(
+      'Verifique os valores introduzidos.'
+    )
+
+    return
+  }
+
+  const gorduraTexto =
+    prompt(
+      'Gordura (%) — pode deixar vazio:',
+      ''
+    )
+
+  const proteinaTexto =
+    prompt(
+      'Proteína (%) — pode deixar vazio:',
+      ''
+    )
+
+  const gordura =
+    gorduraTexto
+      ? Number(
+          gorduraTexto.replace(
+            ',',
+            '.'
+          )
+        )
+      : null
+
+  const proteina =
+    proteinaTexto
+      ? Number(
+          proteinaTexto.replace(
+            ',',
+            '.'
+          )
+        )
+      : null
+
+  const existente =
+    milkRecords.find(
+      r =>
+        r.record_date === data
+    )
+
+  const payload = {
+
+    farm_id:
+      FARM_ID,
+
+    record_date:
+      data,
+
+    liters:
+      litros,
+
+    milking_cows:
+      vacas,
+
+    price_per_liter:
+      preco,
+
+    fat:
+      gordura,
+
+    protein:
+      proteina
+  }
+
+
+  if (existente) {
+
+    const { error } =
+      await supabase
+        .from('milk_records')
+        .update(payload)
+        .eq(
+          'id',
+          existente.id
+        )
+
+    if (error) {
+
+      alert(
+        'Erro ao atualizar produção: ' +
+        error.message
+      )
+
+      return
+    }
+
+    alert(
+      '✅ Produção do dia atualizada.'
+    )
+  }
+
+  else {
+
+    const { error } =
+      await supabase
+        .from('milk_records')
+        .insert(payload)
+
+    if (error) {
+
+      alert(
+        'Erro ao guardar produção: ' +
+        error.message
+      )
+
+      return
+    }
+
+    alert(
+      '✅ Produção registada com sucesso.'
+    )
+  }
+
+  await carregarDados()
+
+  producao()
 }
 
 
@@ -1269,11 +1897,6 @@ function reproducao() {
         📅 Reprodução
       </h1>
 
-      <p class="subtitle">
-        Gestão reprodutiva do rebanho
-      </p>
-
-
       <section class="card">
 
         <h2>
@@ -1313,7 +1936,6 @@ function reproducao() {
 
       ${
         ultimasIA.length
-
           ? ultimasIA
             .slice(0, 15)
             .map(
@@ -1327,7 +1949,6 @@ function reproducao() {
               >
 
                 <div>
-
                   <strong>
                     🐄 ${vaca.id}
                   </strong>
@@ -1336,24 +1957,20 @@ function reproducao() {
                     Touro:
                     ${vaca.touro}
                   </div>
-
                 </div>
 
                 <div class="right">
-
                   <strong>
                     ${formatDate(
                       vaca.ia
                     )}
                   </strong>
-
                 </div>
 
               </section>
-
             `
-            ).join('')
-
+            )
+            .join('')
           : `
             <section class="card">
               Sem inseminações registadas.
@@ -1368,8 +1985,8 @@ function reproducao() {
 
       ${
         proximasSecagens.length
-
-          ? proximasSecagens.map(
+          ? proximasSecagens
+            .map(
               vaca => `
 
               <section
@@ -1380,15 +1997,9 @@ function reproducao() {
               >
 
                 <div>
-
                   <strong>
                     🐄 ${vaca.id}
                   </strong>
-
-                  <div class="muted">
-                    ${vaca.raca}
-                  </div>
-
                 </div>
 
                 <div class="right">
@@ -1410,10 +2021,9 @@ function reproducao() {
                 </div>
 
               </section>
-
             `
-            ).join('')
-
+            )
+            .join('')
           : `
             <section class="card">
               Sem secagens previstas.
@@ -1428,8 +2038,8 @@ function reproducao() {
 
       ${
         proximosPartos.length
-
-          ? proximosPartos.map(
+          ? proximosPartos
+            .map(
               vaca => `
 
               <section
@@ -1471,13 +2081,104 @@ function reproducao() {
                 </div>
 
               </section>
-
             `
-            ).join('')
-
+            )
+            .join('')
           : `
             <section class="card">
               Sem partos previstos.
+            </section>
+          `
+      }
+
+    </main>
+  `
+}
+
+
+/* =========================
+   ALERTAS
+========================= */
+
+function alertas() {
+
+  const eventos =
+    obterAlertas()
+
+  app.innerHTML = `
+    <main class="app">
+
+      <button
+        class="back"
+        data-action="inicio"
+      >
+        ← Voltar
+      </button>
+
+      <h1>
+        🔔 Alertas
+      </h1>
+
+      <p class="subtitle">
+        Próximos 30 dias
+      </p>
+
+      ${
+        eventos.length
+          ? eventos
+            .map(
+              evento => `
+
+              <section
+                class="cow-card alerta"
+                data-action="detalhe"
+                data-id="${evento.vaca.id}"
+                data-voltar="alertas"
+              >
+
+                <div>
+
+                  <strong>
+                    ${evento.icon}
+                    ${evento.tipo}
+                  </strong>
+
+                  <div>
+                    🐄 ${evento.vaca.id}
+                  </div>
+
+                </div>
+
+                <div class="right">
+
+                  <strong>
+                    ${formatDate(
+                      evento.data
+                    )}
+                  </strong>
+
+                  <div
+                    class="${
+                      evento.dias <= 3
+                        ? 'urgente'
+                        : 'muted'
+                    }"
+                  >
+                    ${textoDias(
+                      evento.dias
+                    )}
+                  </div>
+
+                </div>
+
+              </section>
+            `
+            )
+            .join('')
+          : `
+            <section class="card">
+              ✅ Sem alertas para os
+              próximos 30 dias.
             </section>
           `
       }
@@ -1517,9 +2218,7 @@ function animais() {
         placeholder="Pesquisar vaca, touro, raça ou estado…"
       >
 
-      <div
-        id="lista"
-      ></div>
+      <div id="lista"></div>
 
     </main>
   `
@@ -1559,67 +2258,61 @@ function listar(texto) {
 
   const lista =
     document
-      .querySelector(
-        '#lista'
-      )
-
-  if (!resultado.length) {
-
-    lista.innerHTML = `
-      <section class="card">
-        Nenhum animal encontrado.
-      </section>
-    `
-
-    return
-  }
+      .querySelector('#lista')
 
   lista.innerHTML =
-    resultado.map(
-      vaca => `
+    resultado.length
+      ? resultado
+        .map(
+          vaca => `
 
-      <section
-        class="cow-card"
-        data-action="detalhe"
-        data-id="${vaca.id}"
-        data-voltar="animais"
-      >
+          <section
+            class="cow-card"
+            data-action="detalhe"
+            data-id="${vaca.id}"
+            data-voltar="animais"
+          >
 
-        <div>
+            <div>
 
-          <strong>
-            🐄 ${vaca.id}
-          </strong>
+              <strong>
+                🐄 ${vaca.id}
+              </strong>
 
-          <div class="muted">
-            ${vaca.raca}
-          </div>
+              <div class="muted">
+                ${vaca.raca}
+              </div>
 
-          <div class="muted">
-            Touro:
-            ${vaca.touro}
-          </div>
+              <div class="muted">
+                Touro:
+                ${vaca.touro}
+              </div>
 
-        </div>
+            </div>
 
-        <div class="right">
+            <div class="right">
 
-          <strong>
-            Parto
-          </strong>
+              <strong>
+                Parto
+              </strong>
 
-          <div>
-            ${formatDate(
-              vaca.parto
-            )}
-          </div>
+              <div>
+                ${formatDate(
+                  vaca.parto
+                )}
+              </div>
 
-        </div>
+            </div>
 
-      </section>
-
-    `
-    ).join('')
+          </section>
+        `
+        )
+        .join('')
+      : `
+        <section class="card">
+          Nenhum animal encontrado.
+        </section>
+      `
 }
 
 
@@ -1663,9 +2356,7 @@ function detalhe(
         ← Voltar
       </button>
 
-      <section
-        class="card hero"
-      >
+      <section class="card hero">
 
         <p class="muted">
           Animal
@@ -1687,9 +2378,7 @@ function detalhe(
       </section>
 
 
-      <section
-        class="card details"
-      >
+      <section class="card details">
 
         <div>
           <span>
@@ -1703,7 +2392,6 @@ function detalhe(
           </strong>
         </div>
 
-
         <div>
           <span>
             Touro
@@ -1713,18 +2401,6 @@ function detalhe(
             ${vaca.touro}
           </strong>
         </div>
-
-
-        <div>
-          <span>
-            Raça
-          </span>
-
-          <strong>
-            ${vaca.raca}
-          </strong>
-        </div>
-
 
         <div>
           <span>
@@ -1738,7 +2414,6 @@ function detalhe(
           </strong>
         </div>
 
-
         <div>
           <span>
             Secagem prevista
@@ -1751,7 +2426,6 @@ function detalhe(
           </strong>
         </div>
 
-
         <div>
           <span>
             Última secagem
@@ -1763,7 +2437,6 @@ function detalhe(
             )}
           </strong>
         </div>
-
 
         <div>
           <span>
@@ -1820,8 +2493,8 @@ function detalhe(
 
       ${
         historico.length
-
-          ? historico.map(
+          ? historico
+            .map(
               evento => `
 
               <section class="cow-card">
@@ -1858,10 +2531,9 @@ function detalhe(
                 </div>
 
               </section>
-
             `
-            ).join('')
-
+            )
+            .join('')
           : `
             <section class="card">
               Sem histórico reprodutivo.
@@ -1907,15 +2579,10 @@ async function registarSecagem(
     return
   }
 
-  const dataHoje =
-    new Date()
-      .toISOString()
-      .slice(0, 10)
-
   const dataSecagem =
     prompt(
       'Data da secagem (AAAA-MM-DD):',
-      dataHoje
+      hojeISO()
     )
 
   if (!dataSecagem) {
@@ -1935,7 +2602,6 @@ async function registarSecagem(
     await supabase
       .from('reproduction')
       .insert({
-
         farm_id:
           animal.farm_id,
 
@@ -2000,15 +2666,10 @@ async function registarParto(
     return
   }
 
-  const dataHoje =
-    new Date()
-      .toISOString()
-      .slice(0, 10)
-
   const dataParto =
     prompt(
       'Data do parto (AAAA-MM-DD):',
-      dataHoje
+      hojeISO()
     )
 
   if (!dataParto) {
@@ -2030,7 +2691,6 @@ async function registarParto(
     await supabase
       .from('reproduction')
       .insert({
-
         farm_id:
           animal.farm_id,
 
@@ -2054,30 +2714,16 @@ async function registarParto(
     return
   }
 
-  const {
-    error:
-      animalUpdateError
-  } =
-    await supabase
-      .from('animals')
-      .update({
-        last_calving_date:
-          dataParto
-      })
-      .eq(
-        'id',
-        animal.id
-      )
-
-  if (animalUpdateError) {
-
-    alert(
-      'Parto guardado, mas houve erro ao atualizar a vaca: ' +
-      animalUpdateError.message
+  await supabase
+    .from('animals')
+    .update({
+      last_calving_date:
+        dataParto
+    })
+    .eq(
+      'id',
+      animal.id
     )
-
-    return
-  }
 
   alert(
     '🐄 Parto registado com sucesso.'
@@ -2120,15 +2766,10 @@ async function registarIA(
     return
   }
 
-  const dataHoje =
-    new Date()
-      .toISOString()
-      .slice(0, 10)
-
   const dataIA =
     prompt(
       'Data da inseminação (AAAA-MM-DD):',
-      dataHoje
+      hojeISO()
     )
 
   if (!dataIA) {
@@ -2189,7 +2830,6 @@ async function registarIA(
     await supabase
       .from('reproduction')
       .insert({
-
         farm_id:
           animal.farm_id,
 
@@ -2252,8 +2892,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'login'
+      action === 'login'
     ) {
 
       await login()
@@ -2263,8 +2902,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'forgot-password'
+      action === 'forgot-password'
     ) {
 
       await forgotPassword()
@@ -2274,8 +2912,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'update-password'
+      action === 'update-password'
     ) {
 
       await updatePassword()
@@ -2285,8 +2922,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'confirmar-2fa'
+      action === 'confirmar-2fa'
     ) {
 
       await confirmar2FA(
@@ -2298,8 +2934,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'inicio'
+      action === 'inicio'
     ) {
 
       inicio()
@@ -2309,8 +2944,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'animais'
+      action === 'animais'
     ) {
 
       animais()
@@ -2320,8 +2954,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'alertas'
+      action === 'alertas'
     ) {
 
       alertas()
@@ -2331,8 +2964,28 @@ app.addEventListener(
 
 
     if (
+      action === 'producao'
+    ) {
+
+      producao()
+
+      return
+    }
+
+
+    if (
       action ===
-      'reproducao'
+      'registar-producao'
+    ) {
+
+      await registarProducao()
+
+      return
+    }
+
+
+    if (
+      action === 'reproducao'
     ) {
 
       reproducao()
@@ -2342,8 +2995,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'detalhe'
+      action === 'detalhe'
     ) {
 
       detalhe(
@@ -2386,8 +3038,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'logout'
+      action === 'logout'
     ) {
 
       await supabase.auth
@@ -2413,8 +3064,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'secagem'
+      action === 'secagem'
     ) {
 
       await registarSecagem(
@@ -2426,8 +3076,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'parto'
+      action === 'parto'
     ) {
 
       await registarParto(
@@ -2439,8 +3088,7 @@ app.addEventListener(
 
 
     if (
-      action ===
-      'inseminacao'
+      action === 'inseminacao'
     ) {
 
       await registarIA(
