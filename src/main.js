@@ -6714,3 +6714,156 @@ async function arrancar() {
 
 
 arrancar()
+
+/* =========================================================
+   NAVEGAÇÃO INFERIOR
+========================================================= */
+
+function criarBarraInferior() {
+
+  if (
+    document.querySelector(
+      '.bottom-nav'
+    )
+  ) {
+    return
+  }
+
+  const barra =
+    document.createElement(
+      'nav'
+    )
+
+  barra.className =
+    'bottom-nav'
+
+  barra.innerHTML = `
+    <button
+      class="bottom-nav-item"
+      data-action="inicio"
+    >
+      <span class="bottom-nav-icon">
+        🏠
+      </span>
+      <span>
+        Início
+      </span>
+    </button>
+
+    <button
+      class="bottom-nav-item"
+      data-action="animais"
+    >
+      <span class="bottom-nav-icon">
+        🐄
+      </span>
+      <span>
+        Animais
+      </span>
+    </button>
+
+    <button
+      class="bottom-nav-item"
+      data-action="reproducao"
+    >
+      <span class="bottom-nav-icon">
+        🧬
+      </span>
+      <span>
+        Reprodução
+      </span>
+    </button>
+
+    <button
+      class="bottom-nav-item"
+      data-action="producao"
+    >
+      <span class="bottom-nav-icon">
+        🥛
+      </span>
+      <span>
+        Produção
+      </span>
+    </button>
+
+    <button
+      class="bottom-nav-item"
+      data-action="financas"
+    >
+      <span class="bottom-nav-icon">
+        ☰
+      </span>
+      <span>
+        Mais
+      </span>
+    </button>
+  `
+
+  document.body.appendChild(
+    barra
+  )
+}
+
+
+function atualizarBarraInferior() {
+
+  const existeApp =
+    document.querySelector(
+      'main.app'
+    )
+
+  const estaLogin =
+    document.querySelector(
+      '#email'
+    ) ||
+    document.querySelector(
+      '#password'
+    )
+
+  const barra =
+    document.querySelector(
+      '.bottom-nav'
+    )
+
+  if (
+    existeApp &&
+    !estaLogin
+  ) {
+
+    criarBarraInferior()
+
+    document.body.classList.add(
+      'com-bottom-nav'
+    )
+
+  } else {
+
+    if (barra) {
+      barra.remove()
+    }
+
+    document.body.classList.remove(
+      'com-bottom-nav'
+    )
+  }
+}
+
+
+const observadorBarra =
+  new MutationObserver(
+    () => {
+      atualizarBarraInferior()
+    }
+  )
+
+
+observadorBarra.observe(
+  app,
+  {
+    childList: true,
+    subtree: true
+  }
+)
+
+
+atualizarBarraInferior()
