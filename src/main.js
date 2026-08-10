@@ -6788,7 +6788,7 @@ function criarBarraInferior() {
 
     <button
       class="bottom-nav-item"
-      data-action="financas"
+      data-action="mais"
     >
       <span class="bottom-nav-icon">
         ☰
