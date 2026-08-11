@@ -1,4 +1,5 @@
 const SUMMARY_STYLE_ID = 'reproductive-summary-style'
+const PREGNANCY_CHECK_DAYS = 28
 
 function ensureSummaryStyle() {
   if (document.getElementById(SUMMARY_STYLE_ID)) return
@@ -31,6 +32,21 @@ function summaryIsPregnant(value) {
 function summaryIsOpen(value) {
   const result = normalizeSummaryResult(value)
   return result === 'vazia' || result.includes('negativ') || result.includes('não prenhe') || result.includes('nao prenhe')
+}
+
+function daysSinceSummaryDate(value) {
+  if (!value) return -1
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return -1
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.floor((today.getTime() - date.getTime()) / 86400000)
+}
+
+function isDueForPregnancyCheck(record) {
+  if (!record || summaryIsPregnant(record.result) || summaryIsOpen(record.result)) return false
+  return daysSinceSummaryDate(record.event_date) >= PREGNANCY_CHECK_DAYS
 }
 
 function isReproductionScreen(main) {
@@ -70,7 +86,7 @@ async function renderReproductiveSummary(main) {
     for (const record of latestByAnimal.values()) {
       if (summaryIsPregnant(record.result)) pregnant += 1
       else if (summaryIsOpen(record.result)) open += 1
-      else waiting += 1
+      else if (isDueForPregnancyCheck(record)) waiting += 1
     }
 
     main.querySelector('[data-reproductive-summary]')?.remove()
@@ -91,7 +107,7 @@ async function renderReproductiveSummary(main) {
         </div>
         <div class="repro-summary-item waiting">
           <span class="repro-summary-value">${waiting}</span>
-          <span class="repro-summary-label">🩺 A aguardar</span>
+          <span class="repro-summary-label">🩺 A confirmar</span>
         </div>
       </div>
     `
