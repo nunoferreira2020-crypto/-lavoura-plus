@@ -6912,6 +6912,16 @@ if (action === 'financas') {
   financasScreen()
   return
 }
+if (action === 'analises-leite') {
+  analisesLeiteScreen()
+  return
+}
+
+if (action === 'relatorios') {
+  relatoriosScreen()
+  return
+}
+
 if (action === 'mais') {
   marcarBarraAtiva('mais')
   maisScreen()
@@ -7016,6 +7026,69 @@ function definicoesScreen() {
       <section class="card">
         <h2>📱 Aplicação</h2>
         <p>Preferências da Lavoura+.</p>
+      </section>
+
+      <button data-action="mais">
+        ← Voltar
+      </button>
+
+    </main>
+  `
+}
+function analisesLeiteScreen() {
+  app.innerHTML = `
+    <main class="app">
+
+      <section class="hero">
+        <h1>🥛 Análises do leite</h1>
+        <p>Qualidade e composição do leite</p>
+      </section>
+
+      <section class="card">
+        <h2>📋 Registos</h2>
+        <p>Gordura, proteína, células somáticas e UFC.</p>
+      </section>
+
+      <section class="card">
+        <h2>📈 Histórico</h2>
+        <p>Acompanhar médias e evolução das análises.</p>
+      </section>
+
+      <section class="card">
+        <h2>📷 Ler análise por fotografia</h2>
+        <p>Em breve poderá tirar uma fotografia da análise e guardar os valores automaticamente.</p>
+      </section>
+
+      <button data-action="mais">
+        ← Voltar
+      </button>
+
+    </main>
+  `
+}
+
+function relatoriosScreen() {
+  app.innerHTML = `
+    <main class="app">
+
+      <section class="hero">
+        <h1>📊 Relatórios</h1>
+        <p>Resumo da exploração</p>
+      </section>
+
+      <section class="card">
+        <h2>🥛 Produção</h2>
+        <p>Produção diária, médias e evolução.</p>
+      </section>
+
+      <section class="card">
+        <h2>🧬 Reprodução</h2>
+        <p>Inseminações, diagnósticos, partos e secagens.</p>
+      </section>
+
+      <section class="card">
+        <h2>💶 Finanças</h2>
+        <p>Receitas, despesas e resultado da exploração.</p>
       </section>
 
       <button data-action="mais">
