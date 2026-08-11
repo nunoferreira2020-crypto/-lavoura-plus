@@ -12,6 +12,11 @@ function ensureStyle() {
     .repro-stage.dry{background:#fff0df;color:#8a4e00}
     .repro-stage.calving{background:#eaf2ff;color:#285b9a}
     .repro-stage.open{background:#f6ecec;color:#8b3333}
+    .pregnancy-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;width:100%}
+    .pregnancy-actions button{margin:0;padding:12px 10px;border-radius:14px;font-size:15px;font-weight:800;line-height:1.1}
+    .pregnancy-actions .pregnant-btn{background:#2f7d46;color:#fff;border:0}
+    .pregnancy-actions .open-btn{background:#fff1f1;color:#8b3333;border:1px solid #e7baba}
+    .pregnancy-actions button:disabled{opacity:.55}
   `
   document.head.appendChild(style)
 }
@@ -108,6 +113,104 @@ function updateStat(main, label, value) {
   if (number) number.textContent = String(value)
 }
 
+async function saveDiagnosis(cowNumber, result, buttons) {
+  const supabase = window.lavouraSupabase
+  if (!supabase || !cowNumber) return
+
+  const confirmed = window.confirm(
+    `Confirmar vaca ${cowNumber} como ${result.toUpperCase()}?`
+  )
+
+  if (!confirmed) return
+
+  buttons.forEach(button => { button.disabled = true })
+
+  try {
+    const animalResponse = await supabase
+      .from('animals')
+      .select('id, number')
+      .eq('number', cowNumber)
+      .limit(1)
+      .maybeSingle()
+
+    if (animalResponse.error || !animalResponse.data) {
+      throw animalResponse.error || new Error('Vaca não encontrada.')
+    }
+
+    const iaResponse = await supabase
+      .from('reproduction')
+      .select('id, event_date, expected_calving, expected_dry_off')
+      .eq('animal_id', animalResponse.data.id)
+      .eq('event_type', 'IA')
+      .order('event_date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (iaResponse.error || !iaResponse.data) {
+      throw iaResponse.error || new Error('IA não encontrada.')
+    }
+
+    const payload = result === 'Vazia'
+      ? { result, expected_calving: null, expected_dry_off: null }
+      : { result }
+
+    const updateResponse = await supabase
+      .from('reproduction')
+      .update(payload)
+      .eq('id', iaResponse.data.id)
+
+    if (updateResponse.error) throw updateResponse.error
+
+    window.alert(`✅ Diagnóstico guardado: ${result}`)
+    window.location.reload()
+  } catch (error) {
+    console.error('Diagnóstico direto:', error)
+    window.alert('Não foi possível guardar o diagnóstico. Tente novamente.')
+    buttons.forEach(button => { button.disabled = false })
+  }
+}
+
+function addDiagnosisButtons(main) {
+  const section = findSection(main, 'confirmações de prenhez') || findSection(main, 'diagnósticos pendentes')
+  if (!section) return
+
+  section.querySelectorAll('.cow-card').forEach(card => {
+    if (card.querySelector('.pregnancy-actions')) return
+
+    const cowNumber = cowNumberFromCard(card)
+    if (!cowNumber) return
+
+    const actions = document.createElement('div')
+    actions.className = 'pregnancy-actions'
+    actions.innerHTML = `
+      <button type="button" class="pregnant-btn">✅ Prenhe</button>
+      <button type="button" class="open-btn">❌ Vazia</button>
+    `
+
+    const buttons = [...actions.querySelectorAll('button')]
+
+    actions.addEventListener('click', event => {
+      event.preventDefault()
+      event.stopPropagation()
+    })
+
+    actions.querySelector('.pregnant-btn').addEventListener('click', event => {
+      event.preventDefault()
+      event.stopPropagation()
+      saveDiagnosis(cowNumber, 'Prenhe', buttons)
+    })
+
+    actions.querySelector('.open-btn').addEventListener('click', event => {
+      event.preventDefault()
+      event.stopPropagation()
+      saveDiagnosis(cowNumber, 'Vazia', buttons)
+    })
+
+    const left = card.firstElementChild || card
+    left.appendChild(actions)
+  })
+}
+
 async function syncConfirmedPregnancies(main) {
   if (!main || main.dataset.pregnancyFiltered === 'loading') return
 
@@ -200,6 +303,7 @@ async function syncConfirmedPregnancies(main) {
 
     main.dataset.pregnancyFiltered = 'done'
     enhanceStages()
+    addDiagnosisButtons(main)
   } catch (error) {
     console.error('Filtro de prenhez:', error)
     main.dataset.pregnancyFiltered = 'error'
@@ -211,6 +315,8 @@ function enhance() {
 
   const main = document.querySelector('#app main')
   if (!main || !main.innerText.includes('Reprodução')) return
+
+  addDiagnosisButtons(main)
 
   if (!main.dataset.pregnancyFiltered) {
     syncConfirmedPregnancies(main)
