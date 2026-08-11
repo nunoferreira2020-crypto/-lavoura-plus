@@ -191,3 +191,129 @@ body.com-bottom-nav {
   background: #eef5ef !important;
   color: #2f7d45 !important;
 }
+
+/* =========================================================
+   ANÁLISES DO LEITE
+========================================================= */
+
+.milk-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.milk-stat {
+  background: #fff;
+  border: 1px solid #dce6d9;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.milk-stat span,
+.milk-history-values span {
+  color: #718071;
+}
+
+.milk-stat strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 19px;
+}
+
+.milk-trend {
+  display: inline-block;
+  font-weight: 900;
+}
+
+.milk-trend.better {
+  color: #2f7d47;
+}
+
+.milk-trend.worse {
+  color: #c0392b;
+}
+
+.milk-trend.stable {
+  color: #718071;
+}
+
+.milk-analysis-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.milk-analysis-form label {
+  display: grid;
+  gap: 7px;
+  color: #385141;
+  font-weight: 700;
+}
+
+.milk-analysis-form input,
+.milk-analysis-form textarea {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #ccd8c9;
+  border-radius: 12px;
+  background: #fff;
+  color: #17231c;
+  font: inherit;
+}
+
+.milk-analysis-form textarea {
+  resize: vertical;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.milk-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.milk-history-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.milk-history-values span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.milk-history-values b {
+  color: #17231c;
+}
+
+.milk-notes {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 520px) {
+  .milk-analysis-form,
+  .milk-summary,
+  .milk-history-values {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,5 +1,11 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
+import {
+  buildMilkAnalysisPayload,
+  getMilkAnalysisRecords,
+  getMilkAnalysisSummary,
+  getMilkMetricTrend
+} from './milk-analysis.js'
 
 /* =========================================================
    LAVOURA+ 1.2
@@ -6405,15 +6411,67 @@ app.addEventListener(
 
       return
     }
-if (
-  action ===
-  'definicoes'
-) {
+    if (
+      action ===
+      'definicoes'
+    ) {
 
-  definicoesScreen()
+      definicoesScreen()
 
-  return
-}
+      return
+    }
+
+
+    if (
+      action ===
+      'analises-leite'
+    ) {
+
+      analisesLeiteScreen()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'adicionar-analise-fotografia'
+    ) {
+
+      document
+        .querySelector(
+          '#milkAnalysisPhoto'
+        )
+        ?.click()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'relatorios'
+    ) {
+
+      relatoriosScreen()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'mais'
+    ) {
+
+      marcarBarraAtiva(
+        'mais'
+      )
+
+      maisScreen()
+
+      return
+    }
 
     if (
       action ===
@@ -6600,6 +6658,40 @@ app.addEventListener(
       pesquisarAnimais(
         event.target.value
       )
+    }
+  }
+)
+
+
+app.addEventListener(
+  'change',
+  event => {
+
+    if (
+      event.target.id ===
+      'milkAnalysisPhoto'
+    ) {
+
+      prepararLeituraAnaliseImagem(
+        event.target.files?.[0]
+      )
+    }
+  }
+)
+
+
+app.addEventListener(
+  'submit',
+  async event => {
+
+    if (
+      event.target.id ===
+      'milkAnalysisForm'
+    ) {
+
+      event.preventDefault()
+
+      await guardarAnaliseLeite()
     }
   }
 )
@@ -6877,7 +6969,7 @@ observadorBarra.observe(
 atualizarBarraInferior()
 
 document.addEventListener('click', event => {
-  const item = event.target.closest('.bottom-nav-item, [data-action]')
+  const item = event.target.closest('.bottom-nav-item')
 
   if (!item) return
 
@@ -6907,28 +6999,9 @@ if (action === 'producao') {
   return
 }
 
-if (action === 'financas') {
-  marcarBarraAtiva('financas')
-  financasScreen()
-  return
-}
-if (action === 'analises-leite') {
-  analisesLeiteScreen()
-  return
-}
-
-if (action === 'relatorios') {
-  relatoriosScreen()
-  return
-}
-
 if (action === 'mais') {
   marcarBarraAtiva('mais')
   maisScreen()
-  return
-}
-if (action === 'definicoes') {
-  definicoesScreen()
   return
 }
 })
@@ -7036,6 +7109,45 @@ function definicoesScreen() {
   `
 }
 function analisesLeiteScreen() {
+  const analises =
+    getMilkAnalysisRecords(
+      milkRecords
+    )
+
+  const medias =
+    getMilkAnalysisSummary(
+      analises
+    )
+
+  const indicador = (
+    metric,
+    melhorQuandoDesce = false
+  ) => {
+    const tendencia =
+      getMilkMetricTrend(
+        analises,
+        metric
+      )
+
+    if (tendencia === 'stable') {
+      return '<span class="milk-trend stable" title="Sem alteração">→</span>'
+    }
+
+    const melhorou =
+      melhorQuandoDesce
+        ? tendencia === 'down'
+        : tendencia === 'up'
+
+    return `<span class="milk-trend ${melhorou ? 'better' : 'worse'}" title="Evolução face à análise anterior">${tendencia === 'up' ? '↑' : '↓'}</span>`
+  }
+
+  const media = (
+    valor,
+    casas = 2
+  ) => valor === null
+    ? '—'
+    : numero(valor, casas)
+
   app.innerHTML = `
     <main class="app">
 
@@ -7044,23 +7156,91 @@ function analisesLeiteScreen() {
         <p>Qualidade e composição do leite</p>
       </section>
 
-      <section class="card">
-        <h2>📋 Registos</h2>
-        <button class="btn-primary" data-action="nova-analise-leite">
-  + Nova análise
-</button>
-        <p>Gordura, proteína, células somáticas e UFC.</p>
+      <section class="milk-summary" aria-label="Médias das análises">
+        <div class="milk-stat">
+          <span>Gordura média</span>
+          <strong>${media(medias.fat)}% ${indicador('fat')}</strong>
+        </div>
+        <div class="milk-stat">
+          <span>Proteína média</span>
+          <strong>${media(medias.protein)}% ${indicador('protein')}</strong>
+        </div>
+        <div class="milk-stat">
+          <span>Células médias</span>
+          <strong>${media(medias.somatic_cells, 0)} ${indicador('somatic_cells', true)}</strong>
+        </div>
+        <div class="milk-stat">
+          <span>UFC média</span>
+          <strong>${media(medias.ufc, 0)} ${indicador('ufc', true)}</strong>
+        </div>
       </section>
 
       <section class="card">
-        <h2>📈 Histórico</h2>
-        <p>Acompanhar médias e evolução das análises.</p>
+        <h2>➕ Nova análise</h2>
+        <form id="milkAnalysisForm" class="milk-analysis-form">
+          <label>
+            Data
+            <input name="record_date" type="date" value="${hojeISO()}" required>
+          </label>
+          <label>
+            Gordura %
+            <input name="fat" type="number" inputmode="decimal" min="0" step="0.01" required>
+          </label>
+          <label>
+            Proteína %
+            <input name="protein" type="number" inputmode="decimal" min="0" step="0.01" required>
+          </label>
+          <label>
+            Células somáticas
+            <input name="somatic_cells" type="number" inputmode="numeric" min="0" step="1" required>
+          </label>
+          <label>
+            UFC
+            <input name="ufc" type="number" inputmode="numeric" min="0" step="1" required>
+          </label>
+          <label class="full-width">
+            Observações
+            <textarea name="notes" rows="3" maxlength="1000" placeholder="Informação adicional (opcional)"></textarea>
+          </label>
+          <div class="milk-form-actions full-width">
+            <button type="submit">
+              Guardar análise
+            </button>
+            <button type="button" class="back" data-action="adicionar-analise-fotografia">
+              📷 Adicionar por fotografia
+            </button>
+          </div>
+          <input
+            id="milkAnalysisPhoto"
+            class="visually-hidden"
+            type="file"
+            accept="image/*"
+            capture="environment"
+          >
+          <p id="milkAnalysisPhotoStatus" class="muted full-width" aria-live="polite">
+            A fotografia pode ser tirada ou selecionada no iPhone. A leitura automática será adicionada numa próxima fase.
+          </p>
+        </form>
       </section>
 
-      <section class="card">
-        <h2>📷 Ler análise por fotografia</h2>
-        <p>Em breve poderá tirar uma fotografia da análise e guardar os valores automaticamente.</p>
-      </section>
+      <h2>📈 Histórico</h2>
+
+      ${
+        analises.length
+          ? analises.map(registo => `
+              <section class="card milk-history-item">
+                <strong>${formatDate(registo.record_date)}</strong>
+                <div class="milk-history-values">
+                  <span>Gordura <b>${numero(registo.fat, 2)}%</b></span>
+                  <span>Proteína <b>${numero(registo.protein, 2)}%</b></span>
+                  <span>Células <b>${numero(registo.somatic_cells, 0)}</b></span>
+                  <span>UFC <b>${numero(registo.ufc, 0)}</b></span>
+                </div>
+                ${registo.notes ? `<p class="muted milk-notes"></p>` : ''}
+              </section>
+            `).join('')
+          : '<section class="card"><p class="muted">Ainda não existem análises registadas.</p></section>'
+      }
 
       <button data-action="mais">
         ← Voltar
@@ -7068,6 +7248,91 @@ function analisesLeiteScreen() {
 
     </main>
   `
+
+  app
+    .querySelectorAll(
+      '.milk-history-item'
+    )
+    .forEach((item, index) => {
+      const notes =
+        analises[index]?.notes
+
+      if (notes) {
+        item.querySelector(
+          '.milk-notes'
+        ).textContent = notes
+      }
+    })
+}
+
+
+async function guardarAnaliseLeite() {
+  const form =
+    document.querySelector(
+      '#milkAnalysisForm'
+    )
+
+  if (!form?.reportValidity()) {
+    return
+  }
+
+  const values =
+    Object.fromEntries(
+      new FormData(form)
+    )
+
+  const payload =
+    buildMilkAnalysisPayload(
+      values,
+      FARM_ID
+    )
+
+  const existente =
+    milkRecords.find(registo =>
+      registo.record_date ===
+      payload.record_date
+    )
+
+  const query = existente
+    ? supabase
+      .from('milk_records')
+      .update(payload)
+      .eq('id', existente.id)
+    : supabase
+      .from('milk_records')
+      .insert(payload)
+
+  const { error } =
+    await query
+
+  if (error) {
+    alert(
+      'Erro ao guardar análise: ' +
+      error.message
+    )
+    return
+  }
+
+  await carregarDados()
+
+  analisesLeiteScreen()
+
+  alert('✅ Análise guardada.')
+}
+
+
+function prepararLeituraAnaliseImagem(file) {
+  const status =
+    document.querySelector(
+      '#milkAnalysisPhotoStatus'
+    )
+
+  if (!file || !status) {
+    return
+  }
+
+  status.textContent =
+    `Fotografia “${file.name}” selecionada. A leitura automática ainda não está ativa; nenhum valor foi preenchido.`
 }
 
 function relatoriosScreen() {
