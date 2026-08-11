@@ -1,0 +1,24 @@
+.milk-ocr-button {
+  margin-top: 10px;
+}
+
+.milk-ocr-button[hidden] {
+  display: none !important;
+}
+
+.ocr-recognized {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.milk-ocr-message {
+  margin-top: 10px;
+}
+
+.milk-ocr-message.loading {
+  opacity: 0.8;
+}
+
+.milk-ocr-message.error {
+  font-weight: 600;
+}
