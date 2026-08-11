@@ -1,51 +1,69 @@
-const supabase = window.lavouraSupabase
+import './milk-ocr.css'
 
-const fieldMap = {
-  analysis_date: 'record_date',
-  fat: 'fat',
-  protein: 'protein',
-  somatic_cells: 'somatic_cells',
-  cfu: 'ufc'
+const FIELD_MAP = {
+  analysis_date: 'analysisDate',
+  fat: 'analysisFat',
+  protein: 'analysisProtein',
+  somatic_cells: 'analysisSomaticCells',
+  cfu: 'analysisCfu'
 }
 
-function injectStyles() {
-  if (document.querySelector('#milkOcrStyles')) return
+function getSupabase() {
+  return window.lavouraSupabase
+}
 
-  const style = document.createElement('style')
-  style.id = 'milkOcrStyles'
-  style.textContent = `
-    #milkAnalysisRecognize {
-      margin-top: 10px;
-    }
-    .milk-ocr-loading {
-      color: #285b37 !important;
-      font-weight: 700;
-    }
-    .milk-ocr-result {
-      padding: 12px;
-      border-radius: 12px;
-      background: #e9f6eb;
-      color: #234f30 !important;
-      font-weight: 600;
-    }
-    .milk-ocr-error {
-      padding: 12px;
-      border-radius: 12px;
-      background: #fff0ed;
-      color: #a52a1f !important;
-      font-weight: 700;
-    }
-    .milk-ocr-recognized {
-      border: 2px solid #2f7d47 !important;
-      background: #f0fff3 !important;
-      box-shadow: 0 0 0 3px rgba(47, 125, 71, 0.12);
-    }
-    #milkAnalysisRecognize:disabled {
-      opacity: .65;
-      cursor: wait;
-    }
-  `
-  document.head.appendChild(style)
+function getMessage() {
+  return document.querySelector('#fotografiaAnaliseMensagem')
+}
+
+function setMessage(text, type = '') {
+  const message = getMessage()
+  if (!message) return
+
+  message.textContent = text
+  message.classList.remove('loading', 'error')
+  message.classList.add('milk-ocr-message')
+
+  if (type) {
+    message.classList.add(type)
+  }
+}
+
+function clearRecognizedState() {
+  document
+    .querySelectorAll('.ocr-recognized')
+    .forEach(field => field.classList.remove('ocr-recognized'))
+}
+
+function ensureRecognitionButton() {
+  const fileInput = document.querySelector('#fotografiaAnaliseLeite')
+  if (!fileInput || fileInput.dataset.ocrReady === 'true') {
+    return
+  }
+
+  fileInput.dataset.ocrReady = 'true'
+
+  const photoButton = document.querySelector(
+    '[data-action="fotografia-analise-leite"]'
+  )
+
+  if (!photoButton) return
+
+  let recognizeButton = document.querySelector('#processarFotografiaAnalise')
+
+  if (!recognizeButton) {
+    recognizeButton = document.createElement('button')
+    recognizeButton.id = 'processarFotografiaAnalise'
+    recognizeButton.type = 'button'
+    recognizeButton.hidden = true
+    recognizeButton.className = 'milk-ocr-button'
+    recognizeButton.textContent = '✨ Reconhecer valores'
+    photoButton.insertAdjacentElement('afterend', recognizeButton)
+  }
+
+  setMessage(
+    'Tire uma fotografia ou escolha uma imagem. Depois toque em “Reconhecer valores”. Confirme sempre os resultados antes de guardar.'
+  )
 }
 
 function imageAsJpeg(file) {
@@ -54,110 +72,79 @@ function imageAsJpeg(file) {
     const url = URL.createObjectURL(file)
 
     image.onload = () => {
-      const limit = 2048
-      const scale = Math.min(
-        1,
-        limit / Math.max(image.naturalWidth, image.naturalHeight)
-      )
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(image.naturalWidth * scale)
-      canvas.height = Math.round(image.naturalHeight * scale)
+      try {
+        const maxDimension = 2048
+        const scale = Math.min(
+          1,
+          maxDimension / Math.max(image.naturalWidth, image.naturalHeight)
+        )
 
-      const context = canvas.getContext('2d')
-      if (!context) {
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
+
+        const context = canvas.getContext('2d')
+
+        if (!context) {
+          throw new Error('Não foi possível preparar a imagem.')
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height)
+        const jpeg = canvas.toDataURL('image/jpeg', 0.85)
         URL.revokeObjectURL(url)
-        reject(new Error('Não foi possível preparar a fotografia.'))
-        return
+        resolve(jpeg)
+      } catch (error) {
+        URL.revokeObjectURL(url)
+        reject(error)
       }
-
-      context.drawImage(image, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      resolve(canvas.toDataURL('image/jpeg', 0.85))
     }
 
     image.onerror = () => {
       URL.revokeObjectURL(url)
-      reject(new Error('Não foi possível abrir esta fotografia.'))
+      reject(new Error('Não foi possível abrir esta imagem.'))
     }
 
     image.src = url
   })
 }
 
-function setStatus(message, type = '') {
-  const status = document.querySelector('#milkAnalysisPhotoStatus')
-  if (!status) return
+function fillRecognizedField(fieldName, result, recognized) {
+  const id = FIELD_MAP[fieldName]
+  const input = document.querySelector(`#${id}`)
 
-  status.classList.remove('milk-ocr-loading', 'milk-ocr-result', 'milk-ocr-error')
-  if (type) status.classList.add(`milk-ocr-${type}`)
-  status.textContent = message
+  if (!input) return
+
+  input.value = ''
+
+  if (result?.value === null || result?.value === undefined) {
+    return
+  }
+
+  input.value = String(result.value)
+  input.classList.add('ocr-recognized')
+  recognized.push(fieldName)
 }
 
-function ensureRecognizeButton() {
-  const form = document.querySelector('#milkAnalysisForm')
-  const status = document.querySelector('#milkAnalysisPhotoStatus')
-  if (!form || !status) return null
-
-  let button = document.querySelector('#milkAnalysisRecognize')
-  if (button) return button
-
-  button = document.createElement('button')
-  button.id = 'milkAnalysisRecognize'
-  button.type = 'button'
-  button.className = 'back full-width'
-  button.textContent = '✨ Reconhecer valores da fotografia'
-  status.before(button)
-  return button
-}
-
-function clearRecognitionState(form) {
-  form
-    .querySelectorAll('.milk-ocr-recognized')
-    .forEach(field => field.classList.remove('milk-ocr-recognized'))
-}
-
-function fillRecognizedFields(fields) {
-  const form = document.querySelector('#milkAnalysisForm')
-  if (!form) return []
-
-  clearRecognitionState(form)
-
-  const recognized = []
-
-  Object.entries(fieldMap).forEach(([responseName, formName]) => {
-    const input = form.querySelector(`[name="${formName}"]`)
-    if (!input) return
-
-    input.value = ''
-
-    const result = fields?.[responseName]
-    if (result?.value === null || result?.value === undefined) return
-
-    input.value = String(result.value)
-    input.classList.add('milk-ocr-recognized')
-    recognized.push(formName)
-  })
-
-  return recognized
-}
-
-async function recognizeSelectedPhoto() {
-  const input = document.querySelector('#milkAnalysisPhoto')
-  const button = document.querySelector('#milkAnalysisRecognize')
+async function recognizeMilkReport() {
+  const input = document.querySelector('#fotografiaAnaliseLeite')
+  const button = document.querySelector('#processarFotografiaAnalise')
   const file = input?.files?.[0]
 
   if (!file) {
-    setStatus('Escolha primeiro uma fotografia.', 'error')
+    setMessage('Escolha primeiro uma fotografia ou imagem.', 'error')
     return
   }
+
+  const supabase = getSupabase()
 
   if (!supabase?.functions?.invoke) {
-    setStatus('O serviço de leitura não está disponível nesta sessão.', 'error')
+    setMessage('A ligação ao serviço de leitura ainda não está disponível.', 'error')
     return
   }
 
-  button.disabled = true
-  setStatus('A analisar a fotografia…', 'loading')
+  if (button) button.disabled = true
+  clearRecognizedState()
+  setMessage('A analisar a fotografia…', 'loading')
 
   try {
     const image = await imageAsJpeg(file)
@@ -167,63 +154,74 @@ async function recognizeSelectedPhoto() {
     )
 
     if (error) {
-      throw new Error(data?.error || error.message || 'Erro ao analisar a fotografia.')
+      throw new Error(data?.error || error.message || 'Falha no reconhecimento.')
     }
 
-    const recognized = fillRecognizedFields(data?.fields || {})
+    const fields = data?.fields || {}
+    const recognized = []
+
+    for (const fieldName of Object.keys(FIELD_MAP)) {
+      fillRecognizedField(fieldName, fields[fieldName], recognized)
+    }
 
     if (!recognized.length) {
-      setStatus(
-        'Não foi possível reconhecer valores com confiança suficiente. Preencha os campos manualmente.',
+      setMessage(
+        data?.warning ||
+          'Não foi possível reconhecer valores com confiança suficiente. Preencha os campos manualmente.',
         'error'
       )
       return
     }
 
-    const labels = {
-      record_date: 'data',
-      fat: 'gordura',
-      protein: 'proteína',
-      somatic_cells: 'células somáticas',
-      ufc: 'UFC'
-    }
-
-    const names = recognized.map(name => labels[name] || name).join(', ')
     const warning = data?.warning ? ` ${data.warning}` : ''
 
-    setStatus(
-      `Reconhecido: ${names}. Reveja e corrija os campos destacados antes de guardar.${warning}`,
-      'result'
+    setMessage(
+      `Valores reconhecidos em ${recognized.length} campo(s). Reveja e corrija antes de guardar.${warning}`
     )
   } catch (error) {
-    setStatus(
-      error?.message || 'Não foi possível analisar a fotografia. Tente novamente.',
+    console.error('OCR análises do leite:', error)
+    setMessage(
+      error?.message || 'Não foi possível analisar a fotografia.',
       'error'
     )
   } finally {
-    button.disabled = false
+    if (button) button.disabled = false
   }
 }
 
-injectStyles()
+const observer = new MutationObserver(() => {
+  ensureRecognitionButton()
+})
+
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
+})
+
+ensureRecognitionButton()
 
 document.addEventListener('change', event => {
-  if (event.target?.id !== 'milkAnalysisPhoto') return
+  if (event.target?.id !== 'fotografiaAnaliseLeite') return
 
+  const button = document.querySelector('#processarFotografiaAnalise')
   const file = event.target.files?.[0]
-  if (!file) return
 
-  const button = ensureRecognizeButton()
   if (!button) return
 
+  if (!file) {
+    button.hidden = true
+    setMessage('Nenhuma imagem selecionada.')
+    return
+  }
+
   button.hidden = false
-  setStatus(`Fotografia “${file.name}” selecionada. Toque em “Reconhecer valores da fotografia”.`)
+  setMessage(`Imagem selecionada: ${file.name}. Toque em “Reconhecer valores”.`)
 })
 
 document.addEventListener('click', event => {
-  const button = event.target.closest('#milkAnalysisRecognize')
+  const button = event.target.closest('#processarFotografiaAnalise')
   if (!button) return
 
   event.preventDefault()
-  recognizeSelectedPhoto()
+  recognizeMilkReport()
 })
