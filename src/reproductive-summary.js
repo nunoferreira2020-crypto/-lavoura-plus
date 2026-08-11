@@ -1,5 +1,4 @@
 const SUMMARY_STYLE_ID = 'reproductive-summary-style'
-const PREGNANCY_CHECK_DAYS = 28
 
 function ensureSummaryStyle() {
   if (document.getElementById(SUMMARY_STYLE_ID)) return
@@ -34,25 +33,20 @@ function summaryIsOpen(value) {
   return result === 'vazia' || result.includes('negativ') || result.includes('não prenhe') || result.includes('nao prenhe')
 }
 
-function daysSinceSummaryDate(value) {
-  if (!value) return -1
-  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return -1
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Math.floor((today.getTime() - date.getTime()) / 86400000)
-}
-
-function isDueForPregnancyCheck(record) {
-  if (!record || summaryIsPregnant(record.result) || summaryIsOpen(record.result)) return false
-  return daysSinceSummaryDate(record.event_date) >= PREGNANCY_CHECK_DAYS
-}
-
 function isReproductionScreen(main) {
   if (!main) return false
   const heading = main.querySelector('h1')
   return Boolean(heading && heading.innerText.includes('Reprodução'))
+}
+
+function pendingConfirmationCount(main) {
+  const section = [...main.querySelectorAll('.card')].find(card => {
+    const heading = card.querySelector('h2')
+    return heading && heading.innerText.toLowerCase().includes('confirmações de prenhez pendentes')
+  })
+
+  if (!section) return 0
+  return section.querySelectorAll('.cow-card').length
 }
 
 async function renderReproductiveSummary(main) {
@@ -81,13 +75,13 @@ async function renderReproductiveSummary(main) {
 
     let pregnant = 0
     let open = 0
-    let waiting = 0
 
     for (const record of latestByAnimal.values()) {
       if (summaryIsPregnant(record.result)) pregnant += 1
       else if (summaryIsOpen(record.result)) open += 1
-      else if (isDueForPregnancyCheck(record)) waiting += 1
     }
+
+    const waiting = pendingConfirmationCount(main)
 
     main.querySelector('[data-reproductive-summary]')?.remove()
 
