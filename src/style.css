@@ -106,6 +106,106 @@ button {
   border-left: 5px solid #d99b2b;
 }
 
+.analysis-grid,
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric,
+.analysis-record .analysis-grid p {
+  margin: 0;
+  padding: 12px;
+  background: #f5f8f4;
+  border-radius: 12px;
+}
+
+.metric span,
+.analysis-record span {
+  display: block;
+  color: #718071;
+  font-size: 14px;
+}
+
+.metric strong,
+.analysis-record strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.analysis-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.analysis-form label {
+  display: block;
+  font-weight: 700;
+}
+
+.analysis-form textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.photo-button {
+  background: #e9f1e8;
+  color: #285b37;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.form-message.error {
+  color: #a52a1f;
+  font-weight: 700;
+}
+
+.form-message.loading {
+  color: #285b37;
+  font-weight: 700;
+}
+
+.form-message.ocr-result {
+  padding: 12px;
+  color: #234f30;
+  background: #e9f6eb;
+  border-radius: 12px;
+}
+
+.search.ocr-recognized {
+  border: 2px solid #2f7d47;
+  background: #f0fff3;
+  box-shadow: 0 0 0 3px rgba(47, 125, 71, 0.12);
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .analysis-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* =========================================================
    BARRA INFERIOR
 ========================================================= */

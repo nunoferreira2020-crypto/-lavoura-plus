@@ -42,6 +42,7 @@ let milkMonthly = []
 let financeRecords = []
 let financeMonthly = []
 let budgetItems = []
+let milkAnalyses = []
 let dashboardData = null
 
 let voltarDetalhe =
@@ -291,6 +292,17 @@ function dataValida(data) {
 
   return /^\d{4}-\d{2}-\d{2}$/
     .test(data)
+}
+
+
+function escaparHTML(valor) {
+
+  return String(valor ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
 }
 
 
@@ -6421,7 +6433,53 @@ app.addEventListener(
       'analises-leite'
     ) {
 
-      analisesLeiteScreen()
+      await analisesLeiteScreen()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'nova-analise-leite'
+    ) {
+
+      novaAnaliseLeiteScreen()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'guardar-analise-leite'
+    ) {
+
+      await guardarAnaliseLeite()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'fotografia-analise-leite'
+    ) {
+
+      document
+        .querySelector('#fotografiaAnaliseLeite')
+        ?.click()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'processar-fotografia-analise'
+    ) {
+
+      await processarFotografiaAnalise()
 
       return
     }
@@ -6637,6 +6695,42 @@ app.addEventListener(
       pesquisarAnimais(
         event.target.value
       )
+    }
+  }
+)
+
+
+app.addEventListener(
+  'change',
+  event => {
+
+    if (
+      event.target.id !==
+      'fotografiaAnaliseLeite'
+    ) {
+      return
+    }
+
+    const ficheiro =
+      event.target.files?.[0]
+
+    const mensagem =
+      document.querySelector(
+        '#fotografiaAnaliseMensagem'
+      )
+
+    if (mensagem && ficheiro) {
+      mensagem.textContent =
+        `Imagem selecionada: ${ficheiro.name}. Pronta para analisar.`
+
+      const processar =
+        document.querySelector(
+          '#processarFotografiaAnalise'
+        )
+
+      if (processar) {
+        processar.hidden = false
+      }
     }
   }
 )
@@ -7053,7 +7147,84 @@ function definicoesScreen() {
     </main>
   `
 }
-function analisesLeiteScreen() {
+function mediaAnalises(campo) {
+
+  if (!milkAnalyses.length) {
+    return null
+  }
+
+  return milkAnalyses.reduce(
+    (total, analise) =>
+      total + Number(analise[campo]),
+    0
+  ) / milkAnalyses.length
+}
+
+
+function evolucaoAnalise(campo) {
+
+  if (milkAnalyses.length < 2) {
+    return 'Sem comparação'
+  }
+
+  const diferenca =
+    Number(milkAnalyses[0][campo]) -
+    Number(milkAnalyses[1][campo])
+
+  if (diferenca === 0) {
+    return '→ Sem alteração'
+  }
+
+  return diferenca > 0
+    ? `↑ +${numero(diferenca, 1)}`
+    : `↓ ${numero(diferenca, 1)}`
+}
+
+
+async function carregarAnalisesLeite() {
+
+  const { data, error } =
+    await supabase
+      .from('milk_analyses')
+      .select('*')
+      .eq('farm_id', FARM_ID)
+      .order('analysis_date', {
+        ascending: false
+      })
+      .order('created_at', {
+        ascending: false
+      })
+
+  if (error) {
+    throw error
+  }
+
+  milkAnalyses = data || []
+}
+
+
+async function analisesLeiteScreen() {
+
+  let erro = ''
+
+  try {
+    await carregarAnalisesLeite()
+  } catch (error) {
+    milkAnalyses = []
+    console.error(
+      'Análises do leite:',
+      error
+    )
+    erro = 'Não foi possível carregar as análises.'
+  }
+
+  const indicadores = [
+    ['fat', 'Gordura', '%', 2],
+    ['protein', 'Proteína', '%', 2],
+    ['somatic_cells', 'Células somáticas', '', 0],
+    ['cfu', 'UFC', '', 0]
+  ]
+
   app.innerHTML = `
     <main class="app">
 
@@ -7065,19 +7236,52 @@ function analisesLeiteScreen() {
       <section class="card">
         <h2>📋 Registos</h2>
         <button class="btn-primary" data-action="nova-analise-leite">
-  + Nova análise
-</button>
+          + Nova análise
+        </button>
         <p>Gordura, proteína, células somáticas e UFC.</p>
       </section>
 
       <section class="card">
-        <h2>📈 Histórico</h2>
-        <p>Acompanhar médias e evolução das análises.</p>
+        <h2>📊 Médias</h2>
+        <div class="analysis-grid">
+          ${indicadores.map(([campo, titulo, unidade, casas]) => `
+            <div class="metric">
+              <span>${titulo}</span>
+              <strong>${numero(mediaAnalises(campo), casas)}${mediaAnalises(campo) === null ? '' : unidade}</strong>
+            </div>
+          `).join('')}
+        </div>
       </section>
 
       <section class="card">
-        <h2>📷 Ler análise por fotografia</h2>
-        <p>Em breve poderá tirar uma fotografia da análise e guardar os valores automaticamente.</p>
+        <h2>📈 Evolução recente</h2>
+        <p class="muted">Comparação entre as duas análises mais recentes.</p>
+        <div class="analysis-grid">
+          ${indicadores.map(([campo, titulo]) => `
+            <div class="metric">
+              <span>${titulo}</span>
+              <strong>${evolucaoAnalise(campo)}</strong>
+            </div>
+          `).join('')}
+        </div>
+      </section>
+
+      <section>
+        <h2>Histórico</h2>
+        ${erro ? `<p class="form-message error">${erro}</p>` : ''}
+        ${!erro && !milkAnalyses.length ? '<p class="muted">Ainda não existem análises registadas.</p>' : ''}
+        ${milkAnalyses.map(analise => `
+          <article class="card analysis-record">
+            <h3>${formatDate(analise.analysis_date)}</h3>
+            <div class="analysis-grid">
+              <p><span>Gordura</span><strong>${numero(analise.fat, 2)}%</strong></p>
+              <p><span>Proteína</span><strong>${numero(analise.protein, 2)}%</strong></p>
+              <p><span>Células somáticas</span><strong>${numero(analise.somatic_cells, 0)}</strong></p>
+              <p><span>UFC</span><strong>${numero(analise.cfu, 0)}</strong></p>
+            </div>
+            ${analise.notes ? `<p class="analysis-notes"><strong>Observações:</strong> ${escaparHTML(analise.notes)}</p>` : ''}
+          </article>
+        `).join('')}
       </section>
 
       <button data-action="mais">
@@ -7086,6 +7290,252 @@ function analisesLeiteScreen() {
 
     </main>
   `
+}
+
+
+function novaAnaliseLeiteScreen() {
+
+  app.innerHTML = `
+    <main class="app">
+      <section class="hero">
+        <h1>🥛 Nova análise</h1>
+        <p>Introduza os resultados do laboratório</p>
+      </section>
+
+      <form class="card analysis-form" id="analiseLeiteForm">
+        <label>Data
+          <input class="search" id="analysisDate" type="date" value="${hojeISO()}" required>
+        </label>
+        <div class="form-grid">
+          <label>Gordura (%)
+            <input class="search" id="analysisFat" type="number" min="0" step="0.01" inputmode="decimal" required>
+          </label>
+          <label>Proteína (%)
+            <input class="search" id="analysisProtein" type="number" min="0" step="0.01" inputmode="decimal" required>
+          </label>
+          <label>Células somáticas
+            <input class="search" id="analysisSomaticCells" type="number" min="0" step="1" inputmode="numeric" required>
+          </label>
+          <label>UFC
+            <input class="search" id="analysisCfu" type="number" min="0" step="1" inputmode="numeric" required>
+          </label>
+        </div>
+        <label>Observações
+          <textarea class="search" id="analysisNotes" rows="4" maxlength="2000"></textarea>
+        </label>
+
+        <input class="visually-hidden" id="fotografiaAnaliseLeite" type="file" accept="image/*" capture="environment">
+        <button class="photo-button" type="button" data-action="fotografia-analise-leite">📷 Adicionar por fotografia</button>
+        <button hidden id="processarFotografiaAnalise" type="button" data-action="processar-fotografia-analise">✨ Reconhecer valores</button>
+        <p class="muted" id="fotografiaAnaliseMensagem">Tire uma fotografia ou escolha uma imagem. Confirme sempre os valores reconhecidos antes de guardar.</p>
+
+        <p id="analiseLeiteMensagem" class="form-message" aria-live="polite"></p>
+        <div class="form-actions">
+          <button type="button" data-action="guardar-analise-leite">Guardar análise</button>
+          <button type="button" class="back" data-action="analises-leite">Cancelar</button>
+        </div>
+      </form>
+    </main>
+  `
+}
+
+
+function imagemComoJpeg(ficheiro) {
+
+  return new Promise((resolve, reject) => {
+    const imagem = new Image()
+    const url = URL.createObjectURL(ficheiro)
+
+    imagem.onload = () => {
+      const limite = 2048
+      const escala = Math.min(
+        1,
+        limite / Math.max(
+          imagem.naturalWidth,
+          imagem.naturalHeight
+        )
+      )
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(imagem.naturalWidth * escala)
+      canvas.height = Math.round(imagem.naturalHeight * escala)
+      canvas.getContext('2d').drawImage(
+        imagem,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      )
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+
+    imagem.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Não foi possível abrir esta imagem.'))
+    }
+
+    imagem.src = url
+  })
+}
+
+
+function preencherValorReconhecido(
+  id,
+  resultado,
+  reconhecidos
+) {
+
+  const campo = document.querySelector(`#${id}`)
+
+  if (
+    !campo ||
+    resultado?.value === null ||
+    resultado?.value === undefined
+  ) {
+    return
+  }
+
+  campo.value = resultado.value
+  campo.classList.add('ocr-recognized')
+  reconhecidos.push(
+    campo.closest('label')
+      ?.firstChild?.textContent?.trim() || id
+  )
+}
+
+
+async function processarFotografiaAnalise() {
+
+  const input = document.querySelector(
+    '#fotografiaAnaliseLeite'
+  )
+  const botao = document.querySelector(
+    '#processarFotografiaAnalise'
+  )
+  const mensagem = document.querySelector(
+    '#fotografiaAnaliseMensagem'
+  )
+  const ficheiro = input?.files?.[0]
+
+  if (!ficheiro) {
+    mensagem.textContent = 'Escolha primeiro uma imagem.'
+    return
+  }
+
+  botao.disabled = true
+  mensagem.className = 'form-message loading'
+  mensagem.textContent = 'A analisar a imagem…'
+
+  document
+    .querySelectorAll('.ocr-recognized')
+    .forEach(campo =>
+      campo.classList.remove('ocr-recognized')
+    )
+
+  try {
+    const image = await imagemComoJpeg(ficheiro)
+    const { data, error } =
+      await supabase.functions.invoke(
+        'analyze-milk-report',
+        { body: { image } }
+      )
+
+    if (error) {
+      throw new Error(
+        data?.error || error.message
+      )
+    }
+
+    const reconhecidos = []
+    const campos = data?.fields || {}
+
+    for (const id of [
+      'analysisDate',
+      'analysisFat',
+      'analysisProtein',
+      'analysisSomaticCells',
+      'analysisCfu'
+    ]) {
+      document.querySelector(`#${id}`).value = ''
+    }
+
+    preencherValorReconhecido(
+      'analysisDate',
+      campos.analysis_date,
+      reconhecidos
+    )
+    preencherValorReconhecido(
+      'analysisFat',
+      campos.fat,
+      reconhecidos
+    )
+    preencherValorReconhecido(
+      'analysisProtein',
+      campos.protein,
+      reconhecidos
+    )
+    preencherValorReconhecido(
+      'analysisSomaticCells',
+      campos.somatic_cells,
+      reconhecidos
+    )
+    preencherValorReconhecido(
+      'analysisCfu',
+      campos.cfu,
+      reconhecidos
+    )
+
+    mensagem.className = 'form-message ocr-result'
+    mensagem.textContent = reconhecidos.length
+      ? `Reconhecido: ${reconhecidos.join(', ')}. Os campos destacados foram preenchidos. Reveja e corrija antes de guardar.${data.warning ? ` ${data.warning}` : ''}`
+      : 'Não foi possível reconhecer nenhum valor com confiança suficiente. Preencha os campos manualmente.'
+  } catch (error) {
+    mensagem.className = 'form-message error'
+    mensagem.textContent =
+      error.message ||
+      'Não foi possível analisar a imagem. Tente novamente ou preencha manualmente.'
+  } finally {
+    botao.disabled = false
+  }
+}
+
+
+async function guardarAnaliseLeite() {
+
+  const formulario =
+    document.querySelector('#analiseLeiteForm')
+  const mensagem =
+    document.querySelector('#analiseLeiteMensagem')
+
+  if (!formulario?.reportValidity()) {
+    return
+  }
+
+  const payload = {
+    farm_id: FARM_ID,
+    analysis_date: document.querySelector('#analysisDate').value,
+    fat: parseNumero(document.querySelector('#analysisFat').value),
+    protein: parseNumero(document.querySelector('#analysisProtein').value),
+    somatic_cells: parseNumero(document.querySelector('#analysisSomaticCells').value),
+    cfu: parseNumero(document.querySelector('#analysisCfu').value),
+    notes: document.querySelector('#analysisNotes').value.trim() || null
+  }
+
+  mensagem.textContent = 'A guardar…'
+
+  const { error } =
+    await supabase
+      .from('milk_analyses')
+      .insert(payload)
+
+  if (error) {
+    mensagem.textContent =
+      `Não foi possível guardar: ${error.message}`
+    mensagem.classList.add('error')
+    return
+  }
+
+  await analisesLeiteScreen()
 }
 
 function relatoriosScreen() {
