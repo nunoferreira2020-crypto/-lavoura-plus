@@ -17,6 +17,8 @@ function ensureStyle() {
     .pregnancy-actions .pregnant-btn{background:#2f7d46;color:#fff;border:0}
     .pregnancy-actions .open-btn{background:#fff1f1;color:#8b3333;border:1px solid #e7baba}
     .pregnancy-actions button:disabled{opacity:.55}
+    .open-cow-priority{border-left-color:#c94b4b!important}
+    .open-cow-priority .open-priority-label{color:#8b3333;font-weight:800}
   `
   document.head.appendChild(style)
 }
@@ -310,16 +312,116 @@ async function syncConfirmedPregnancies(main) {
   }
 }
 
+function formatDatePt(value) {
+  if (!value) return '—'
+  const parts = String(value).split('-')
+  if (parts.length !== 3) return String(value)
+  return `${parts[2]}/${parts[1]}/${parts[0]}`
+}
+
+function priorityHeading(main) {
+  return [...main.querySelectorAll('h2')].find(heading =>
+    heading.innerText.trim().toLowerCase() === 'prioridades'
+  )
+}
+
+async function addOpenCowPriorities(main) {
+  if (!main || main.dataset.openCowPriorities === 'loading' || main.dataset.openCowPriorities === 'done') return
+
+  const heading = priorityHeading(main)
+  if (!heading) return
+
+  const supabase = window.lavouraSupabase
+  if (!supabase) return
+
+  main.dataset.openCowPriorities = 'loading'
+
+  try {
+    const [animalsResponse, reproductionResponse] = await Promise.all([
+      supabase.from('animals').select('id, number, breed'),
+      supabase
+        .from('reproduction')
+        .select('id, animal_id, event_type, event_date, result')
+        .eq('event_type', 'IA')
+        .order('event_date', { ascending: false })
+    ])
+
+    if (animalsResponse.error || reproductionResponse.error) {
+      main.dataset.openCowPriorities = 'error'
+      return
+    }
+
+    const animalById = new Map(
+      (animalsResponse.data || []).map(animal => [String(animal.id), animal])
+    )
+
+    const latestByAnimal = new Map()
+    for (const record of reproductionResponse.data || []) {
+      const key = String(record.animal_id)
+      if (!latestByAnimal.has(key)) latestByAnimal.set(key, record)
+    }
+
+    const openCows = []
+    for (const [animalId, record] of latestByAnimal) {
+      if (!isOpen(record.result)) continue
+      const animal = animalById.get(animalId)
+      if (!animal) continue
+      openCows.push({ animal, record })
+    }
+
+    openCows.sort((a, b) => String(a.animal.number).localeCompare(String(b.animal.number), undefined, { numeric: true }))
+
+    for (const item of [...openCows].reverse()) {
+      const number = String(item.animal.number)
+      if (main.querySelector(`[data-open-cow="${CSS.escape(number)}"]`)) continue
+
+      const card = document.createElement('section')
+      card.className = 'cow-card alerta open-cow-priority'
+      card.dataset.action = 'detalhe'
+      card.dataset.id = number
+      card.dataset.voltar = 'inicio'
+      card.dataset.openCow = number
+
+      card.innerHTML = `
+        <div>
+          <strong>🔴 Nova IA necessária</strong>
+          <div>🐄 ${number}</div>
+          <div class="muted">${item.animal.breed || '—'}</div>
+        </div>
+        <div class="right">
+          <strong>${formatDatePt(item.record.event_date)}</strong>
+          <div class="open-priority-label">VAZIA</div>
+          <div class="muted">REINSEMINAR</div>
+        </div>
+      `
+
+      heading.insertAdjacentElement('afterend', card)
+    }
+
+    main.dataset.openCowPriorities = 'done'
+  } catch (error) {
+    console.error('Prioridades de vacas vazias:', error)
+    main.dataset.openCowPriorities = 'error'
+  }
+}
+
 function enhance() {
-  enhanceStages()
+  ensureStyle()
 
   const main = document.querySelector('#app main')
-  if (!main || !main.innerText.includes('Reprodução')) return
+  if (!main) return
 
-  addDiagnosisButtons(main)
+  if (main.innerText.includes('Reprodução')) {
+    enhanceStages()
+    addDiagnosisButtons(main)
 
-  if (!main.dataset.pregnancyFiltered) {
-    syncConfirmedPregnancies(main)
+    if (!main.dataset.pregnancyFiltered) {
+      syncConfirmedPregnancies(main)
+    }
+  }
+
+  if (priorityHeading(main)) {
+    addOpenCowPriorities(main)
   }
 }
 
