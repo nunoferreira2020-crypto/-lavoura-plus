@@ -1,4 +1,5 @@
 import './milk-ocr.css'
+import './milk-history.js'
 
 const FIELD_MAP={analysis_date:'analysisDate',fat:'analysisFat',protein:'analysisProtein',somatic_cells:'analysisSomaticCells',cfu:'analysisCfu'}
 let tesseractPromise
