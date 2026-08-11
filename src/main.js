@@ -6950,6 +6950,29 @@ function maisScreen() {
       </section>
 
       
+<section class="card">
+  <h2>💶 Finanças</h2>
+  <p>Receitas, despesas e resultado da exploração.</p>
+  <button data-action="financas">
+    Abrir finanças
+  </button>
+</section>
+
+<section class="card">
+  <h2>🥛 Análises do leite</h2>
+  <p>Gordura, proteína, células somáticas, UFC e histórico.</p>
+  <button data-action="analises-leite">
+    Abrir análises
+  </button>
+</section>
+
+<section class="card">
+  <h2>📊 Relatórios</h2>
+  <p>Resumo da produção, reprodução e desempenho.</p>
+  <button data-action="relatorios">
+    Abrir relatórios
+  </button>
+</section>
 
       <section class="card">
         <h2>⚙️ Definições</h2>
