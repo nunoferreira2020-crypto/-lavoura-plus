@@ -129,6 +129,31 @@ function fillRecognizedField(fieldName, result, recognized) {
   recognized.push(fieldName)
 }
 
+async function extractFunctionError(error, data) {
+  if (data?.error) {
+    return data.error
+  }
+
+  const response = error?.context
+
+  if (response && typeof response.clone === 'function') {
+    try {
+      const payload = await response.clone().json()
+      if (payload?.error) return payload.error
+      if (payload?.message) return payload.message
+    } catch (_) {
+      try {
+        const text = await response.clone().text()
+        if (text) return text
+      } catch (_) {
+        // Ignorar e usar a mensagem genérica abaixo.
+      }
+    }
+  }
+
+  return error?.message || 'Falha no reconhecimento.'
+}
+
 async function recognizeMilkReport() {
   const input = document.querySelector('#fotografiaAnaliseLeite')
   const button = document.querySelector('#processarFotografiaAnalise')
@@ -158,7 +183,8 @@ async function recognizeMilkReport() {
     )
 
     if (error) {
-      throw new Error(data?.error || error.message || 'Falha no reconhecimento.')
+      const realMessage = await extractFunctionError(error, data)
+      throw new Error(realMessage)
     }
 
     const fields = data?.fields || {}
