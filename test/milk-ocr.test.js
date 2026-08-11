@@ -20,16 +20,16 @@ test('OCR usa o formulário existente e não guarda automaticamente', () => {
   assert.doesNotMatch(frontend, /\.from\(['"]milk_analyses['"]\)\.insert/)
 })
 
-test('OCR chama Edge Function e mantém segredos fora do frontend', () => {
-  assert.match(frontend, /analyze-milk-report/)
+test('OCR usa Tesseract no browser e mantém segredos fora do frontend', () => {
+  assert.match(frontend, /tesseract\.js/)
+  assert.match(frontend, /Tesseract\.recognize/)
   assert.doesNotMatch(frontend, /OPENAI_API_KEY/)
-  assert.match(edge, /Deno\.env\.get\(['"]OPENAI_API_KEY['"]\)/)
-  assert.match(edge, /store:\s*false/)
 })
 
-test('Edge Function exige autenticação e confiança mínima de 75%', () => {
+test('Edge Function legada continua protegida caso volte a ser utilizada', () => {
   assert.match(edge, /Authorization/)
   assert.match(edge, /auth\.getUser\(\)/)
+  assert.match(edge, /Deno\.env\.get\(['"]OPENAI_API_KEY['"]\)/)
   assert.match(edge, /threshold\s*=\s*0\.75/)
   assert.match(edge, /analysis_date/)
   assert.match(edge, /somatic_cells/)
