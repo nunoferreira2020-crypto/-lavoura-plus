@@ -1,0 +1,22 @@
+const FARM_ID='72bb5d54-f614-4394-8da9-7113a8e48a29'
+let busy=false
+
+function euro(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('pt-PT',{style:'currency',currency:'EUR'}):'—'}
+function num(v,d=0){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('pt-PT',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'}
+function monthlyCost(item){const a=Number(item.amount)||0;switch(item.frequency){case'monthly':return a;case'weekly':return a*52/12;case'yearly':return a/12;default:return 0}}
+function monthKey(d){return String(d||'').slice(0,7)}
+function currentMonth(){return new Date().toISOString().slice(0,7)}
+
+async function load(){const s=window.lavouraSupabase;if(!s)return null;const [f,b,m]=await Promise.all([
+ s.from('finance_records').select('record_date,kind,category,amount').eq('farm_id',FARM_ID).order('record_date',{ascending:false}),
+ s.from('budget_items').select('category,amount,frequency,active').eq('farm_id',FARM_ID),
+ s.from('milk_records').select('record_date,liters,price_per_liter,milking_cows').eq('farm_id',FARM_ID).order('record_date',{ascending:false})
+]);if(f.error||b.error||m.error)throw(f.error||b.error||m.error);return{finance:f.data||[],budget:(b.data||[]).filter(x=>x.active!==false),milk:m.data||[]}}
+
+function calc(data){const mk=currentMonth();const fm=data.finance.filter(x=>monthKey(x.record_date)===mk);const income=fm.filter(x=>x.kind==='income').reduce((a,x)=>a+Number(x.amount||0),0);const expense=fm.filter(x=>x.kind==='expense').reduce((a,x)=>a+Number(x.amount||0),0);const budget=data.budget.reduce((a,x)=>a+monthlyCost(x),0);const milk=data.milk.filter(x=>monthKey(x.record_date)===mk);const liters=milk.reduce((a,x)=>a+Number(x.liters||0),0);const milkRevenue=milk.reduce((a,x)=>a+Number(x.liters||0)*Number(x.price_per_liter||0),0);const effectiveIncome=income||milkRevenue;const effectiveExpense=expense||budget;const margin=effectiveIncome-effectiveExpense;const costPerLiter=liters>0?effectiveExpense/liters:null;const marginPerLiter=liters>0?margin/liters:null;const categories={};fm.filter(x=>x.kind==='expense').forEach(x=>categories[x.category]=(categories[x.category]||0)+Number(x.amount||0));if(!Object.keys(categories).length)data.budget.forEach(x=>categories[x.category]=(categories[x.category]||0)+monthlyCost(x));return{income,expense,budget,liters,milkRevenue,effectiveIncome,effectiveExpense,margin,costPerLiter,marginPerLiter,categories}}
+
+function makeCard(c){const top=Object.entries(c.categories).sort((a,b)=>b[1]-a[1]).slice(0,5);return `<section class="card finance-insight-block"><h2>📊 Resumo financeiro do mês</h2><div class="detail-row"><span>Receita considerada</span><strong>${euro(c.effectiveIncome)}</strong></div><div class="detail-row"><span>Custos considerados</span><strong>${euro(c.effectiveExpense)}</strong></div><div class="detail-row"><span>Margem estimada</span><strong>${euro(c.margin)}</strong></div><div class="detail-row"><span>Litros registados</span><strong>${num(c.liters,0)} L</strong></div><div class="detail-row"><span>Custo por litro</span><strong>${c.costPerLiter==null?'—':euro(c.costPerLiter)+'/L'}</strong></div><div class="detail-row"><span>Margem por litro</span><strong>${c.marginPerLiter==null?'—':euro(c.marginPerLiter)+'/L'}</strong></div>${top.length?`<h3>Maiores custos</h3>${top.map(([k,v])=>`<div class="detail-row"><span>${k}</span><strong>${euro(v)}</strong></div>`).join('')}`:''}<p class="muted">Usa movimentos reais do mês quando existem; caso contrário, usa os custos previstos e a receita calculada a partir dos registos de leite.</p></section>`}
+
+async function enhance(){if(busy)return;const main=document.querySelector('main.app');if(!main)return;const text=main.textContent||'';const isFinance=text.includes('Finanças');const isReports=text.includes('Relatórios');if(!isFinance&&!isReports)return;if(main.querySelector('.finance-insight-block'))return;busy=true;try{const data=await load();if(!data)return;const c=calc(data);const wrap=document.createElement('div');wrap.innerHTML=makeCard(c);const card=wrap.firstElementChild;if(isFinance){const h=[...main.querySelectorAll('h1')].find(x=>x.textContent.includes('Finanças'));h?.insertAdjacentElement('afterend',card)}else{const h=[...main.querySelectorAll('h1')].find(x=>x.textContent.includes('Relatórios'));h?.insertAdjacentElement('afterend',card)}}catch(e){console.error('Finance insights',e)}finally{busy=false}}
+
+new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});enhance()
