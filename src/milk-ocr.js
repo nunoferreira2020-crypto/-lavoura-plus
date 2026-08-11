@@ -42,6 +42,7 @@ function ensureRecognitionButton() {
   }
 
   fileInput.dataset.ocrReady = 'true'
+  fileInput.setAttribute('accept', 'image/*')
 
   const photoButton = document.querySelector(
     '[data-action="fotografia-analise-leite"]'
@@ -57,12 +58,12 @@ function ensureRecognitionButton() {
     recognizeButton.type = 'button'
     recognizeButton.hidden = true
     recognizeButton.className = 'milk-ocr-button'
-    recognizeButton.textContent = '✨ Reconhecer valores'
+    recognizeButton.textContent = '✨ Ler novamente'
     photoButton.insertAdjacentElement('afterend', recognizeButton)
   }
 
   setMessage(
-    'Tire uma fotografia ou escolha uma imagem. Depois toque em “Reconhecer valores”. Confirme sempre os resultados antes de guardar.'
+    'Pode tirar uma fotografia ou escolher uma captura de ecrã da galeria. A Lavoura+ tenta reconhecer os valores automaticamente; confirme-os antes de guardar.'
   )
 }
 
@@ -131,7 +132,7 @@ async function recognizeMilkReport() {
   const file = input?.files?.[0]
 
   if (!file) {
-    setMessage('Escolha primeiro uma fotografia ou imagem.', 'error')
+    setMessage('Escolha primeiro uma fotografia ou captura de ecrã.', 'error')
     return
   }
 
@@ -144,7 +145,7 @@ async function recognizeMilkReport() {
 
   if (button) button.disabled = true
   clearRecognizedState()
-  setMessage('A analisar a fotografia…', 'loading')
+  setMessage('🔎 A ler a imagem e a procurar os valores da análise…', 'loading')
 
   try {
     const image = await imageAsJpeg(file)
@@ -167,7 +168,7 @@ async function recognizeMilkReport() {
     if (!recognized.length) {
       setMessage(
         data?.warning ||
-          'Não foi possível reconhecer valores com confiança suficiente. Preencha os campos manualmente.',
+          'Não foi possível reconhecer valores com confiança suficiente. Pode preencher os campos manualmente ou tentar outra captura.',
         'error'
       )
       return
@@ -176,12 +177,12 @@ async function recognizeMilkReport() {
     const warning = data?.warning ? ` ${data.warning}` : ''
 
     setMessage(
-      `Valores reconhecidos em ${recognized.length} campo(s). Reveja e corrija antes de guardar.${warning}`
+      `✅ ${recognized.length} valor(es) reconhecido(s) e colocado(s) automaticamente nos campos. Confirme antes de guardar.${warning}`
     )
   } catch (error) {
     console.error('OCR análises do leite:', error)
     setMessage(
-      error?.message || 'Não foi possível analisar a fotografia.',
+      error?.message || 'Não foi possível analisar a imagem.',
       'error'
     )
   } finally {
@@ -215,7 +216,9 @@ document.addEventListener('change', event => {
   }
 
   button.hidden = false
-  setMessage(`Imagem selecionada: ${file.name}. Toque em “Reconhecer valores”.`)
+  setMessage(`Imagem selecionada: ${file.name}. A reconhecer automaticamente…`, 'loading')
+
+  recognizeMilkReport()
 })
 
 document.addEventListener('click', event => {
