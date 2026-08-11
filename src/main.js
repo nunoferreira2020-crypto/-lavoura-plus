@@ -6405,15 +6405,52 @@ app.addEventListener(
 
       return
     }
-if (
-  action ===
-  'definicoes'
-) {
+    if (
+      action ===
+      'definicoes'
+    ) {
 
-  definicoesScreen()
+      definicoesScreen()
 
-  return
-}
+      return
+    }
+
+
+    if (
+      action ===
+      'analises-leite'
+    ) {
+
+      analisesLeiteScreen()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'relatorios'
+    ) {
+
+      relatoriosScreen()
+
+      return
+    }
+
+
+    if (
+      action ===
+      'mais'
+    ) {
+
+      marcarBarraAtiva(
+        'mais'
+      )
+
+      maisScreen()
+
+      return
+    }
 
     if (
       action ===
@@ -6877,7 +6914,7 @@ observadorBarra.observe(
 atualizarBarraInferior()
 
 document.addEventListener('click', event => {
-  const item = event.target.closest('.bottom-nav-item, [data-action]')
+  const item = event.target.closest('.bottom-nav-item')
 
   if (!item) return
 
@@ -6907,28 +6944,9 @@ if (action === 'producao') {
   return
 }
 
-if (action === 'financas') {
-  marcarBarraAtiva('financas')
-  financasScreen()
-  return
-}
-if (action === 'analises-leite') {
-  analisesLeiteScreen()
-  return
-}
-
-if (action === 'relatorios') {
-  relatoriosScreen()
-  return
-}
-
 if (action === 'mais') {
   marcarBarraAtiva('mais')
   maisScreen()
-  return
-}
-if (action === 'definicoes') {
-  definicoesScreen()
   return
 }
 })
