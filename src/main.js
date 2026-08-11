@@ -7046,6 +7046,9 @@ function analisesLeiteScreen() {
 
       <section class="card">
         <h2>📋 Registos</h2>
+        <button class="btn-primary" data-action="nova-analise-leite">
+  + Nova análise
+</button>
         <p>Gordura, proteína, células somáticas e UFC.</p>
       </section>
 
