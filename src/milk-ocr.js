@@ -43,12 +43,15 @@ function ensureRecognitionButton() {
 
   fileInput.dataset.ocrReady = 'true'
   fileInput.setAttribute('accept', 'image/*')
+  fileInput.removeAttribute('capture')
 
   const photoButton = document.querySelector(
     '[data-action="fotografia-analise-leite"]'
   )
 
   if (!photoButton) return
+
+  photoButton.textContent = '🖼️ Escolher fotografia ou captura de ecrã'
 
   let recognizeButton = document.querySelector('#processarFotografiaAnalise')
 
@@ -63,7 +66,7 @@ function ensureRecognitionButton() {
   }
 
   setMessage(
-    'Pode tirar uma fotografia ou escolher uma captura de ecrã da galeria. A Lavoura+ tenta reconhecer os valores automaticamente; confirme-os antes de guardar.'
+    'Escolha uma fotografia ou uma captura de ecrã da Fototeca. A Lavoura+ tenta reconhecer os valores automaticamente; confirme-os antes de guardar.'
   )
 }
 
