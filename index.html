@@ -10,9 +10,9 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="Lavoura+" />
   <meta name="description" content="Gestão da exploração leiteira" />
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" href="/lavoura-icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="/lavoura-icon.svg" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./lavoura-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./lavoura-icon.svg" />
   <title>Lavoura+</title>
 </head>
 <body>
@@ -32,7 +32,8 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(error => console.error('Service Worker:', error))
+        const serviceWorkerUrl = new URL('./sw.js', window.location.href)
+        navigator.serviceWorker.register(serviceWorkerUrl).catch(error => console.error('Service Worker:', error))
       })
     }
   </script>
