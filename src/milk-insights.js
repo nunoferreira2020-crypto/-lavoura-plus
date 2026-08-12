@@ -38,9 +38,9 @@ function trend(latest,previous,key){
 }
 function alerts(latest){
   const result=[]
-  const cells=n(latest?.somatic_cells),ufc=n(latest?.ufc)
+  const cells=n(latest?.somatic_cells),cfu=n(latest?.cfu)
   if(cells!=null&&cells>=300000)result.push(`⚠️ Células somáticas elevadas: ${fmt(cells,0)}`)
-  if(ufc!=null&&ufc>=50000)result.push(`⚠️ UFC elevada: ${fmt(ufc,0)}`)
+  if(cfu!=null&&cfu>=50000)result.push(`⚠️ UFC elevada: ${fmt(cfu,0)}`)
   return result
 }
 
@@ -52,7 +52,7 @@ async function renderInsights(){
   if(!target)return
   rendering=true
   try{
-    const {data,error}=await supabase.from('milk_analyses').select('analysis_date,fat,protein,somatic_cells,ufc').eq('farm_id',FARM_ID).order('analysis_date',{ascending:false}).limit(12)
+    const {data,error}=await supabase.from('milk_analyses').select('analysis_date,fat,protein,somatic_cells,cfu').eq('farm_id',FARM_ID).order('analysis_date',{ascending:false}).limit(12)
     if(error)throw error
     const rows=data||[]
     if(!rows.length)return
@@ -61,7 +61,7 @@ async function renderInsights(){
       {key:'fat',label:'Gordura',suffix:'%',decimals:2},
       {key:'protein',label:'Proteína',suffix:'%',decimals:2},
       {key:'somatic_cells',label:'Células somáticas',suffix:'',decimals:0},
-      {key:'ufc',label:'UFC',suffix:'',decimals:0}
+      {key:'cfu',label:'UFC',suffix:'',decimals:0}
     ]
     const notices=alerts(latest)
     const section=document.createElement('section')
