@@ -1,0 +1,32 @@
+const FARM_ID='72bb5d54-f614-4394-8da9-7113a8e48a29'
+const STYLE_ID='cow-profile-style'
+let queued=false
+
+function ensureStyle(){if(document.getElementById(STYLE_ID))return;const s=document.createElement('style');s.id=STYLE_ID;s.textContent=`
+.cow-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.cow-profile-stat{padding:12px;border-radius:15px;background:#f7faf8;border:1px solid #e0e9e2}.cow-profile-stat span{display:block;font-size:12px;color:#68756d}.cow-profile-stat strong{display:block;font-size:17px;margin-top:3px}.cow-profile-alert{border-left:5px solid #b64343}.cow-profile-timeline{display:grid;gap:8px}.cow-profile-event{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid #edf1ee}.cow-profile-event:last-child{border-bottom:0}.cow-profile-icon{font-size:18px}.cow-profile-event strong{display:block}.cow-profile-event small{color:#68756d}.cow-profile-empty{color:#68756d;font-size:14px}.cow-profile-badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#edf5ef;font-size:12px;font-weight:800;margin-top:4px}
+@media(max-width:560px){.cow-profile-grid{grid-template-columns:1fr 1fr}.cow-profile-event{grid-template-columns:auto 1fr}.cow-profile-event>time{grid-column:2}}
+`;document.head.appendChild(s)}
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+function date(v){if(!v)return'—';const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:String(v)}
+function norm(v){return String(v||'').trim().toLowerCase()}
+function isPregnant(v){const n=norm(v);return n==='prenhe'||n.includes('positiv')}
+function isOpen(v){const n=norm(v);return n==='vazia'||n.includes('negativ')||n.includes('não prenhe')||n.includes('nao prenhe')}
+function active(v){return Boolean(v&&String(v).slice(0,10)>=new Date().toISOString().slice(0,10))}
+function detailNumber(main){const h=main.querySelector('h1');if(!h||!h.innerText.includes('🐄')||main.querySelector('#animalList'))return'';return h.innerText.match(/🐄\s*([^\s]+)/)?.[1]?.trim()||''}
+function reproLabel(e){if(e.event_type==='IA')return `IA${e.bull?` · ${e.bull}`:''}${e.result?` · ${e.result}`:''}`;if(e.event_type==='PARTO')return'Parto';if(e.event_type==='SECAGEM')return'Secagem';return e.event_type||'Reprodução'}
+function reproIcon(e){return e.event_type==='IA'?'🧬':e.event_type==='PARTO'?'🐄':e.event_type==='SECAGEM'?'🟠':'📌'}
+function healthLabel(h){return `${h.category||'Saúde'}${h.diagnosis?` · ${h.diagnosis}`:''}${h.medication?` · ${h.medication}`:''}`}
+
+async function enhance(){ensureStyle();const main=document.querySelector('#app main');if(!main||main.dataset.cowProfileReady==='1')return;const number=detailNumber(main);if(!number)return;const sb=window.lavouraSupabase;if(!sb)return
+ const animalRes=await sb.from('animals').select('id,number,name,breed,status,birth_date,last_calving_date,notes').eq('farm_id',FARM_ID).eq('number',number).maybeSingle();if(animalRes.error||!animalRes.data)return;const animal=animalRes.data
+ const [rRes,hRes]=await Promise.all([sb.from('reproduction').select('id,event_type,event_date,bull,semen_type,result,expected_calving,expected_dry_off,notes').eq('farm_id',FARM_ID).eq('animal_id',animal.id).order('event_date',{ascending:false}),sb.from('health_records').select('id,event_date,category,diagnosis,medication,dose,route,milk_withdrawal_until,meat_withdrawal_until,cost,notes').eq('farm_id',FARM_ID).eq('animal_id',animal.id).order('event_date',{ascending:false})])
+ const repro=rRes.error?[]:rRes.data||[];const health=hRes.error?[]:hRes.data||[];const latestIA=repro.find(e=>e.event_type==='IA');const pregnant=Boolean(latestIA&&isPregnant(latestIA.result));const open=Boolean(latestIA&&isOpen(latestIA.result));const milkWithdrawal=health.find(h=>active(h.milk_withdrawal_until));const healthCost=health.reduce((s,h)=>s+Number(h.cost||0),0)
+ const timeline=[...repro.map(e=>({date:e.event_date,icon:reproIcon(e),title:reproLabel(e),detail:e.notes||'',kind:'repro'})),...health.map(h=>({date:h.event_date,icon:'🩺',title:healthLabel(h),detail:[h.dose,h.route,h.notes].filter(Boolean).join(' · '),kind:'health'}))].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,25)
+ const firstCard=main.querySelector('.card');if(!firstCard)return
+ const overview=document.createElement('section');overview.className='card cow-profile-complete';overview.innerHTML=`<h2>📋 Ficha completa</h2><div class="cow-profile-grid"><div class="cow-profile-stat"><span>Estado reprodutivo</span><strong>${pregnant?'✅ Prenhe':open?'❌ Vazia':latestIA?'🩺 A confirmar':'—'}</strong></div><div class="cow-profile-stat"><span>IA registadas</span><strong>${repro.filter(e=>e.event_type==='IA').length}</strong></div><div class="cow-profile-stat"><span>Registos de saúde</span><strong>${health.length}</strong></div><div class="cow-profile-stat"><span>Custo saúde acumulado</span><strong>${healthCost.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})}</strong></div></div>${animal.notes?`<p><strong>Observações:</strong> ${esc(animal.notes)}</p>`:''}`;firstCard.insertAdjacentElement('afterend',overview)
+ if(milkWithdrawal){const alert=document.createElement('section');alert.className='card cow-profile-alert';alert.innerHTML=`<h2>🥛 Leite em carência</h2><p>Até <strong>${date(milkWithdrawal.milk_withdrawal_until)}</strong>${milkWithdrawal.medication?` · ${esc(milkWithdrawal.medication)}`:''}</p>`;overview.insertAdjacentElement('afterend',alert)}
+ const timelineCard=document.createElement('section');timelineCard.className='card';timelineCard.innerHTML=`<h2>🕘 Histórico completo</h2>${timeline.length?`<div class="cow-profile-timeline">${timeline.map(e=>`<div class="cow-profile-event"><span class="cow-profile-icon">${e.icon}</span><div><strong>${esc(e.title)}</strong>${e.detail?`<small>${esc(e.detail)}</small>`:''}</div><time>${date(e.date)}</time></div>`).join('')}</div>`:'<p class="cow-profile-empty">Ainda não há histórico para mostrar.</p>'}`;main.appendChild(timelineCard)
+ main.dataset.cowProfileReady='1'
+}
+function schedule(){if(queued)return;queued=true;queueMicrotask(async()=>{queued=false;try{await enhance()}catch(e){console.error('Ficha completa da vaca:',e)}})}
+new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});schedule()
