@@ -14,7 +14,7 @@ async function load(){
     s.from('animals').select('id,number,status').eq('farm_id',FARM_ID),
     s.from('reproduction').select('animal_id,event_type,event_date,result,expected_calving,expected_dry_off').eq('farm_id',FARM_ID).order('event_date',{ascending:false}),
     s.from('milk_records').select('record_date,liters,milking_cows,price_per_liter').eq('farm_id',FARM_ID).order('record_date',{ascending:false}),
-    s.from('milk_analyses').select('analysis_date,fat,protein,somatic_cells,ufc').eq('farm_id',FARM_ID).order('analysis_date',{ascending:false}),
+    s.from('milk_analyses').select('analysis_date,fat,protein,somatic_cells,cfu').eq('farm_id',FARM_ID).order('analysis_date',{ascending:false}),
     s.from('finance_records').select('record_date,kind,amount').eq('farm_id',FARM_ID).order('record_date',{ascending:false}),
     s.from('budget_items').select('amount,frequency,active').eq('farm_id',FARM_ID)
   ])
@@ -69,7 +69,7 @@ function make(c){
       <div class="detail-row"><span>Gordura</span><strong>${num(analysis.fat,2)}%</strong></div>
       <div class="detail-row"><span>Proteína</span><strong>${num(analysis.protein,2)}%</strong></div>
       <div class="detail-row"><span>Células somáticas</span><strong>${num(analysis.somatic_cells,0)}</strong></div>
-      <div class="detail-row"><span>UFC</span><strong>${num(analysis.ufc,0)}</strong></div>`:''}
+      <div class="detail-row"><span>UFC</span><strong>${num(analysis.cfu,0)}</strong></div>`:''}
   </section>`
 }
 
