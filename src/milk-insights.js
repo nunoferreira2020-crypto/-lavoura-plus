@@ -39,8 +39,8 @@ function trend(latest,previous,key){
 function alerts(latest){
   const result=[]
   const cells=n(latest?.somatic_cells),cfu=n(latest?.cfu)
-  if(cells!=null&&cells>=300000)result.push(`⚠️ Células somáticas elevadas: ${fmt(cells,0)}`)
-  if(cfu!=null&&cfu>=50000)result.push(`⚠️ UFC elevada: ${fmt(cfu,0)}`)
+  if(cells!=null&&cells>=300)result.push(`⚠️ Células somáticas elevadas: ${fmt(cells,0)} ×1000`)
+  if(cfu!=null&&cfu>=50)result.push(`⚠️ UFC elevada: ${fmt(cfu,0)} ×1000`)
   return result
 }
 
@@ -60,8 +60,8 @@ async function renderInsights(){
     const configs=[
       {key:'fat',label:'Gordura',suffix:'%',decimals:2},
       {key:'protein',label:'Proteína',suffix:'%',decimals:2},
-      {key:'somatic_cells',label:'Células somáticas',suffix:'',decimals:0},
-      {key:'cfu',label:'UFC',suffix:'',decimals:0}
+      {key:'somatic_cells',label:'Células somáticas (×1000)',suffix:'',decimals:0},
+      {key:'cfu',label:'UFC (×1000)',suffix:'',decimals:0}
     ]
     const notices=alerts(latest)
     const section=document.createElement('section')
@@ -72,7 +72,7 @@ async function renderInsights(){
         ${configs.map(c=>{const t=trend(latest,previous,c.key);return `<div class="milk-insight-card"><span class="milk-insight-label">${c.label}</span><strong>${fmt(latest[c.key],c.decimals)}${n(latest[c.key])!=null?c.suffix:''}</strong><span class="milk-insight-trend ${t.cls}">${t.text}</span><div class="milk-insight-label">Média últimas ${recent.length}: ${fmt(avg(recent,c.key),c.decimals)}${avg(recent,c.key)!=null?c.suffix:''}</div></div>`}).join('')}
       </div>
       ${notices.map(x=>`<div class="milk-insight-alert">${x}</div>`).join('')}
-      <p class="milk-insight-note">Compara a análise mais recente com a anterior e calcula a média das últimas ${recent.length} análises guardadas. Os alertas são indicadores de atenção, não um diagnóstico.</p>
+      <p class="milk-insight-note">Compara a análise mais recente com a anterior e calcula a média das últimas ${recent.length} análises guardadas. Células somáticas e UFC usam a unidade ×1000 do relatório. Os alertas são indicadores de atenção, não um diagnóstico.</p>
     `
     target.insertAdjacentElement('beforebegin',section)
   }catch(error){console.error('Resumo das análises do leite:',error)}finally{rendering=false}
