@@ -42,7 +42,7 @@ async function syncLatestAnalysis() {
   try {
     const { data, error } = await supabase
       .from('milk_analyses')
-      .select('id, analysis_date, fat, protein, somatic_cells, ufc')
+      .select('id, analysis_date, fat, protein, somatic_cells, cfu')
       .eq('farm_id', FARM_ID)
       .order('analysis_date', { ascending: false })
       .limit(1)
@@ -56,7 +56,7 @@ async function syncLatestAnalysis() {
     updateRow(card, 'Gordura', `${formatNumber(data.fat, 2)}%`)
     updateRow(card, 'Proteína', `${formatNumber(data.protein, 2)}%`)
     updateRow(card, 'Células somáticas', formatNumber(data.somatic_cells, 0))
-    updateRow(card, 'UFC', formatNumber(data.ufc, 0))
+    updateRow(card, 'UFC', formatNumber(data.cfu, 0))
 
     card.dataset.qualitySynced = analysisKey
     lastAnalysisKey = analysisKey
