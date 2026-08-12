@@ -38,7 +38,7 @@ async function loadData(){
     sb.from('animals').select('id,number,status').eq('farm_id',FARM_ID),
     sb.from('reproduction').select('id,animal_id,event_type,event_date,result,expected_dry_off,expected_calving').eq('farm_id',FARM_ID).order('event_date',{ascending:false}),
     sb.from('milk_records').select('record_date,liters,milking_cows,price_per_liter').eq('farm_id',FARM_ID).order('record_date',{ascending:false}).limit(2),
-    sb.from('milk_analyses').select('analysis_date,somatic_cells,ufc').eq('farm_id',FARM_ID).order('analysis_date',{ascending:false}).limit(1)
+    sb.from('milk_analyses').select('analysis_date,somatic_cells,cfu').eq('farm_id',FARM_ID).order('analysis_date',{ascending:false}).limit(1)
   ])
   if(animalsR.error)throw animalsR.error;if(reproR.error)throw reproR.error
   return{animals:animalsR.data||[],repro:reproR.data||[],milk:milkR.error?[]:(milkR.data||[]),analysis:analysisR.error?null:(analysisR.data||[])[0]||null}
@@ -51,7 +51,7 @@ function calculate({animals,repro,milk,analysis}){
   const latest=milk[0]||null,prev=milk[1]||null
   if(latest&&prev&&Number(prev.liters)>0){const pct=(Number(latest.liters)-Number(prev.liters))/Number(prev.liters)*100;if(pct<=-8)alerts.push({icon:'🥛',title:'Produção caiu',text:`${Math.abs(pct).toFixed(1).replace('.',',')}% face ao registo anterior`})}
   if(analysis&&Number(analysis.somatic_cells)>=300000)alerts.push({icon:'🧪',title:'Células somáticas elevadas',text:`Última análise: ${n(analysis.somatic_cells,0)}`})
-  if(analysis&&Number(analysis.ufc)>=50000)alerts.push({icon:'🧫',title:'UFC elevada',text:`Última análise: ${n(analysis.ufc,0)}`})
+  if(analysis&&Number(analysis.cfu)>=50000)alerts.push({icon:'🧫',title:'UFC elevada',text:`Última análise: ${n(analysis.cfu,0)}`})
   const liters=latest?Number(latest.liters):null,cows=latest?Number(latest.milking_cows):null
   return{total:animals.length,preg,empty,pending,liters,cows,lpc:liters&&cows?liters/cows:null,alerts:alerts.slice(0,8)}
 }
