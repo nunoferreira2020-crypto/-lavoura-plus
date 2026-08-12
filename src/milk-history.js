@@ -1,5 +1,6 @@
 import './milk-history.css'
 
+const FARM_ID='72bb5d54-f614-4394-8da9-7113a8e48a29'
 const CHARTS=[
   {key:'fat',title:'Gordura',suffix:'%',decimals:2},
   {key:'protein',title:'Proteína',suffix:'%',decimals:2},
@@ -58,7 +59,7 @@ async function renderMilkHistoryCharts(){
   if(!historyHeading)return
   rendering=true
   try{
-    const {data,error}=await supabase.from('milk_analyses').select('analysis_date,fat,protein,somatic_cells,cfu').order('analysis_date',{ascending:true})
+    const {data,error}=await supabase.from('milk_analyses').select('analysis_date,fat,protein,somatic_cells,cfu').eq('farm_id',FARM_ID).order('analysis_date',{ascending:true})
     if(error)throw error
     const rows=data||[]
     const section=document.createElement('section')
