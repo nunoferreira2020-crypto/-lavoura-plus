@@ -26,6 +26,14 @@ test('OCR usa Tesseract no browser e mantém segredos fora do frontend', () => {
   assert.doesNotMatch(frontend, /OPENAI_API_KEY/)
 })
 
+test('OCR valida datas reais do calendário', () => {
+  assert.match(frontend, /function isValidISODate/)
+  assert.match(frontend, /Date\.UTC/)
+  assert.match(frontend, /getUTCFullYear/)
+  assert.match(frontend, /getUTCMonth/)
+  assert.match(frontend, /getUTCDate/)
+})
+
 test('Edge Function legada continua protegida caso volte a ser utilizada', () => {
   assert.match(edge, /Authorization/)
   assert.match(edge, /auth\.getUser\(\)/)
