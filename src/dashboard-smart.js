@@ -31,6 +31,7 @@ function n(v,d=0){const x=Number(v);return Number.isFinite(x)?x.toLocaleString('
 function resultNorm(v){return String(v||'').trim().toLowerCase()}
 function pregnant(v){const x=resultNorm(v);return x==='prenhe'||x.includes('positiv')}
 function open(v){const x=resultNorm(v);return x==='vazia'||x.includes('negativ')||x.includes('não prenhe')||x.includes('nao prenhe')}
+function timingText(days){if(days===0)return 'hoje';if(days>0)return `em ${days} dia(s)`;return `${Math.abs(days)} dia(s) atrasado`}
 
 async function loadData(){
   const sb=window.lavouraSupabase;if(!sb)throw new Error('Supabase indisponível')
@@ -47,12 +48,25 @@ async function loadData(){
 function calculate({animals,repro,milk,analysis}){
   const latestIA=new Map();for(const r of repro){if(String(r.event_type).toUpperCase()!=='IA')continue;const k=String(r.animal_id);if(!latestIA.has(k))latestIA.set(k,r)}
   const animalById=new Map(animals.map(a=>[String(a.id),a]));let preg=0,empty=0,pending=0;const alerts=[]
-  for(const[animalId,r]of latestIA){const animal=animalById.get(animalId);const number=animal?.number||animalId;if(pregnant(r.result)){preg++;const dry=daysFromToday(r.expected_dry_off),calv=daysFromToday(r.expected_calving);if(dry>=0&&dry<=7)alerts.push({icon:'🟠',title:`Secagem: vaca ${number}`,text:`Prevista para ${ptDate(r.expected_dry_off)} · em ${dry===0?'hoje':dry+' dia(s)'}`});if(calv>=0&&calv<=7)alerts.push({icon:'🔵',title:`Parto: vaca ${number}`,text:`Previsto para ${ptDate(r.expected_calving)} · em ${calv===0?'hoje':calv+' dia(s)'}`})}else if(open(r.result)){empty++;alerts.push({icon:'🔴',title:`Nova IA: vaca ${number}`,text:'Último diagnóstico: VAZIA'})}else{const since=-daysFromToday(r.event_date);if(since>=28){pending++;alerts.push({icon:'🩺',title:`Confirmar prenhez: vaca ${number}`,text:`IA há ${since} dias`})}}}
+  for(const[animalId,r]of latestIA){
+    const animal=animalById.get(animalId);const number=animal?.number||animalId
+    if(pregnant(r.result)){
+      preg++
+      const dry=daysFromToday(r.expected_dry_off),calv=daysFromToday(r.expected_calving)
+      if(dry>=-7&&dry<=7)alerts.push({icon:'🟠',title:`Secagem: vaca ${number}`,text:`Prevista para ${ptDate(r.expected_dry_off)} · ${timingText(dry)}`})
+      if(calv>=-7&&calv<=7)alerts.push({icon:'🔵',title:`Parto: vaca ${number}`,text:`Previsto para ${ptDate(r.expected_calving)} · ${timingText(calv)}`})
+    }else if(open(r.result)){
+      empty++;alerts.push({icon:'🔴',title:`Nova IA: vaca ${number}`,text:'Último diagnóstico: VAZIA'})
+    }else{
+      const since=-daysFromToday(r.event_date);if(since>=28){pending++;alerts.push({icon:'🩺',title:`Confirmar prenhez: vaca ${number}`,text:`IA há ${since} dias`})}
+    }
+  }
   const latest=milk[0]||null,prev=milk[1]||null
   if(latest&&prev&&Number(prev.liters)>0){const pct=(Number(latest.liters)-Number(prev.liters))/Number(prev.liters)*100;if(pct<=-8)alerts.push({icon:'🥛',title:'Produção caiu',text:`${Math.abs(pct).toFixed(1).replace('.',',')}% face ao registo anterior`})}
   if(analysis&&Number(analysis.somatic_cells)>=300)alerts.push({icon:'🧪',title:'Células somáticas elevadas',text:`Última análise: ${n(analysis.somatic_cells,0)} ×1000`})
   if(analysis&&Number(analysis.cfu)>=50)alerts.push({icon:'🧫',title:'UFC elevada',text:`Última análise: ${n(analysis.cfu,0)} ×1000`})
   const liters=latest?Number(latest.liters):null,cows=latest?Number(latest.milking_cows):null
+  alerts.sort((a,b)=>Number(b.text.includes('atrasado'))-Number(a.text.includes('atrasado')))
   return{total:animals.length,preg,empty,pending,liters,cows,lpc:liters&&cows?liters/cows:null,alerts:alerts.slice(0,8)}
 }
 
