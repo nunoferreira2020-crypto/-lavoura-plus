@@ -11,41 +11,37 @@ const LABEL_REPLACEMENTS = [
   ['Diagnóstico', 'Confirmação de prenhez']
 ]
 
+function cleanupCompletedCalvingBadges(root=document.body){
+  if(!root)return
+  root.querySelectorAll('.card').forEach(section=>{
+    const title=(section.querySelector('h2')?.textContent||'').toLowerCase()
+    if(!title.includes('últimas ia'))return
+    section.querySelectorAll('.cow-card').forEach(card=>{
+      const text=(card.textContent||'').toLowerCase()
+      if(text.includes('parto concluído'))card.querySelectorAll('.repro-stage.wait').forEach(badge=>badge.remove())
+    })
+  })
+}
+
 function replacePregnancyLabels(root = document.body) {
   if (!root) return
-
-  const walker = document.createTreeWalker(
-    root,
-    NodeFilter.SHOW_TEXT
-  )
-
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   const textNodes = []
   let node
-
-  while ((node = walker.nextNode())) {
-    textNodes.push(node)
-  }
-
+  while ((node = walker.nextNode())) textNodes.push(node)
   for (const textNode of textNodes) {
-    let text = textNode.nodeValue
+    const text = textNode.nodeValue
     let updated = text
-
-    for (const [from, to] of LABEL_REPLACEMENTS) {
-      updated = updated.replaceAll(from, to)
-    }
-
-    if (updated !== text) {
-      textNode.nodeValue = updated
-    }
+    for (const [from, to] of LABEL_REPLACEMENTS) updated = updated.replaceAll(from, to)
+    if (updated !== text) textNode.nodeValue = updated
   }
+  cleanupCompletedCalvingBadges(root)
 }
 
 let scheduled = false
-
 function scheduleReplacement() {
   if (scheduled) return
   scheduled = true
-
   queueMicrotask(() => {
     scheduled = false
     replacePregnancyLabels()
@@ -53,11 +49,5 @@ function scheduleReplacement() {
 }
 
 const observer = new MutationObserver(scheduleReplacement)
-
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
-  characterData: true
-})
-
+observer.observe(document.body, { childList: true, subtree: true, characterData: true })
 replacePregnancyLabels()
