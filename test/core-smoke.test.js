@@ -18,7 +18,7 @@ const coreModules=[
   'open-cow-reinsemination.js',
   'reproductive-summary.js',
   'reproductive-timeline.js',
-  'herd-tools.js',
+  'herd-tools-v2.js',
   'health-tools.js',
   'health-dashboard.js',
   'farm-agenda.js',
@@ -36,6 +36,7 @@ test('index carrega todos os módulos essenciais da Lavoura+',()=>{
   for(const moduleName of coreModules){
     assert.match(index,new RegExp(`/src/${moduleName.replace('.', '\\.')}`),`módulo em falta: ${moduleName}`)
   }
+  assert.doesNotMatch(index,/\/src\/herd-tools\.js/)
 })
 
 test('PWA mantém manifest, ícone, service worker e configuração mobile',()=>{
