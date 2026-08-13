@@ -5,6 +5,32 @@ const COW_NAMES={
 const STORAGE_KEY='lavoura-cow-names-v1'
 let syncing=false
 function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(COW_NAMES))}catch{}}
-function decorate(){const main=document.querySelector('#app main');if(!main)return;for(const card of main.querySelectorAll('.cow-card')){const number=String(card.dataset.id||card.innerText.match(/🐄\s*([^\s]+)/)?.[1]||'').trim();const name=COW_NAMES[number];if(!name)continue;const text=card.querySelector('.cow-number')||card.querySelector('strong')||card.firstElementChild;if(text&&!text.innerText.includes(name))text.innerHTML=`🐄 ${number} <span class="muted">— ${name}</span>`}const title=main.querySelector('h1');if(title&&title.innerText.includes('🐄')){const number=title.innerText.match(/🐄\s*([^\s]+)/)?.[1]?.trim();const name=COW_NAMES[number];if(name&&!title.innerText.includes(name))title.textContent=`🐄 ${number} — ${name}`}}
+function removeDuplicateName(card,name){
+  const nodes=[...card.querySelectorAll('div,span,p')]
+  for(const node of nodes){
+    if(node.children.length)continue
+    if(node.closest('.muted'))continue
+    if(node.textContent?.trim()!==name)continue
+    const header=card.querySelector('.cow-number')||card.querySelector('strong')||card.firstElementChild
+    if(header&&header.contains(node))continue
+    node.remove()
+    break
+  }
+}
+function decorate(){
+  const main=document.querySelector('#app main');if(!main)return
+  for(const card of main.querySelectorAll('.cow-card')){
+    const number=String(card.dataset.id||card.innerText.match(/🐄\s*([^\s]+)/)?.[1]||'').trim()
+    const name=COW_NAMES[number];if(!name)continue
+    const text=card.querySelector('.cow-number')||card.querySelector('strong')||card.firstElementChild
+    if(text&&!text.innerText.includes(name))text.innerHTML=`🐄 ${number} <span class="muted">— ${name}</span>`
+    removeDuplicateName(card,name)
+  }
+  const title=main.querySelector('h1')
+  if(title&&title.innerText.includes('🐄')){
+    const number=title.innerText.match(/🐄\s*([^\s]+)/)?.[1]?.trim();const name=COW_NAMES[number]
+    if(name&&!title.innerText.includes(name))title.textContent=`🐄 ${number} — ${name}`
+  }
+}
 async function syncNames(){if(syncing)return;const sb=window.lavouraSupabase;if(!sb)return;syncing=true;try{const {data,error}=await sb.from('animals').select('id,number,name').eq('farm_id',FARM_ID);if(error)return;for(const animal of data||[]){const name=COW_NAMES[String(animal.number)];if(!name||animal.name===name)continue;const {error:updateError}=await sb.from('animals').update({name}).eq('id',animal.id).eq('farm_id',FARM_ID);if(updateError)console.error('Cow name update:',animal.number,updateError)}}finally{syncing=false}}
 saveLocal();decorate();syncNames().then(decorate);let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;decorate()})}).observe(document.body,{childList:true,subtree:true})
