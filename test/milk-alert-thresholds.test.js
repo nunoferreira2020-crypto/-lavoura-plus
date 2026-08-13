@@ -16,6 +16,6 @@ test('dashboard usa limites na unidade x1000 do relatório', () => {
 test('resumo das análises usa os mesmos limites x1000', () => {
   assert.match(insights, /cells>=300/)
   assert.match(insights, /cfu>=50/)
-  assert.match(insights, /Células somáticas \(×1000\)/)
-  assert.match(insights, /UFC \(×1000\)/)
+  assert.match(insights, /Células somáticas · ×1000/)
+  assert.match(insights, /UFC · ×1000/)
 })
