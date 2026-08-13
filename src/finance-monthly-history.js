@@ -1,3 +1,5 @@
+import './finance-month-comparison.js'
+
 const FARM_ID='72bb5d54-f614-4394-8da9-7113a8e48a29'
 const STYLE_ID='finance-monthly-history-style'
 let busy=false
