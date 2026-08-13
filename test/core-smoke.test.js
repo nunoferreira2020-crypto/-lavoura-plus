@@ -27,6 +27,7 @@ const coreModules=[
   'cow-profile.js',
   'finance-insights.js',
   'finance-profit-chart.js',
+  'finance-monthly-history.js',
   'rentability-sync.js',
   'reports-final.js',
   'dashboard-smart.js',
