@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
-const source=fs.readFileSync('src/postpartum-reproduction-summary.js','utf8')
+const source=fs.readFileSync('src/postpartum-reproduction-summary-v2.js','utf8')
 const index=fs.readFileSync('index.html','utf8')
 
 test('resumo pós-parto fica restrito à página Reprodução',()=>{
@@ -20,6 +20,7 @@ test('usa os limites 45 e 80 dias e só considera IA depois do último parto',()
 test('queries ficam limitadas ao farm_id e módulo está carregado',()=>{
   assert.match(source,/from\('animals'\)[\s\S]*?\.eq\('farm_id',FARM_ID\)/)
   assert.match(source,/from\('reproduction'\)[\s\S]*?\.eq\('farm_id',FARM_ID\)/)
-  assert.match(index,/postpartum-reproduction-summary\.js/)
+  assert.match(index,/postpartum-reproduction-summary-v2\.js/)
   assert.doesNotMatch(index,/postpartum-breeding-window\.js/)
+  assert.doesNotMatch(index,/postpartum-reproduction-summary\.js\?v=1/)
 })
