@@ -30,7 +30,7 @@ function pendingConfirmationCount(main) {
   return section?section.querySelectorAll('.cow-card').length:0
 }
 function ptDate(value){if(!value)return '—';const [y,m,d]=String(value).slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:'—'}
-function escapeHtml(value){return String(value??'').replace(/[&<>'\"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[ch]))}
+function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
 
 async function loadReproductiveData(supabase){
   const [iaResponse,animalResponse]=await Promise.all([
