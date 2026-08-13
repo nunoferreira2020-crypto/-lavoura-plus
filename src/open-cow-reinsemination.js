@@ -17,17 +17,29 @@ function ensureStyle() {
       font-weight:800;
       width:100%;
     }
+    .postpartum-safe-row.priority .open-cow-reinsemination,
+    .postpartum-safe-row.high .open-cow-reinsemination{
+      background:#9a3030;
+    }
   `
   document.head.appendChild(style)
+}
+
+function cowNumberFromCard(card) {
+  const fromDataset = String(card.dataset.openCow || card.dataset.id || '').trim()
+  if (fromDataset) return fromDataset
+
+  const match = card.innerText.match(/🐄\s*([^\s—]+)/)
+  return match ? String(match[1]).trim() : ''
 }
 
 function enhanceOpenCowCards() {
   ensureStyle()
 
-  document.querySelectorAll('[data-open-cow]').forEach(card => {
+  document.querySelectorAll('[data-open-cow], .postpartum-safe-row').forEach(card => {
     if (card.querySelector('.open-cow-reinsemination')) return
 
-    const cowNumber = String(card.dataset.openCow || card.dataset.id || '').trim()
+    const cowNumber = cowNumberFromCard(card)
     if (!cowNumber) return
 
     const left = card.firstElementChild || card
