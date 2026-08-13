@@ -12,7 +12,7 @@ test('ficha completa usa apenas dados da exploração atual',()=>{
 })
 
 test('ficha mostra reprodução saúde carência e histórico cronológico',()=>{
-  for(const text of ['Ficha completa','Estado reprodutivo','Registos de saúde','Leite em carência','Histórico completo'])assert.match(source,new RegExp(text))
+  for(const text of ['Ficha completa','Estado reprodutivo','Registos de saúde','Leite em carência','Atividade da vaca'])assert.match(source,new RegExp(text))
   assert.match(source,/event_type==='IA'/)
   assert.match(source,/milk_withdrawal_until/)
 })
