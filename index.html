@@ -19,13 +19,38 @@
 <body>
   <div id="app"></div>
 
-  <!-- Núcleo estável da aplicação. Os módulos de enriquecimento ficam
-       temporariamente desligados para evitar sobrecarga de MutationObserver
-       no Safari/iPhone e recuperar a interação por toque. -->
+  <!-- Núcleo estável da aplicação. Módulos pesados são carregados apenas
+       quando necessários para reduzir trabalho de MutationObserver no iPhone. -->
   <script type="module" src="/src/main.js?v=stable-1"></script>
   <script type="module" src="/src/auth-public-fixes.js?v=2"></script>
   <script type="module" src="/src/iphone-public-fixes.js?v=3"></script>
-  <script type="module" src="/src/milk-ocr.js?v=2"></script>
+
+  <script type="module">
+    let milkOcrPromise = null
+
+    function loadMilkOcr() {
+      if (!milkOcrPromise) {
+        milkOcrPromise = import('/src/milk-ocr.js?v=3')
+          .catch(error => {
+            milkOcrPromise = null
+            console.error('OCR do leite:', error)
+          })
+      }
+      return milkOcrPromise
+    }
+
+    document.addEventListener('pointerdown', event => {
+      if (event.target.closest('[data-action="fotografia-analise-leite"], #fotografiaAnaliseLeite')) {
+        loadMilkOcr()
+      }
+    }, true)
+
+    document.addEventListener('focusin', event => {
+      if (event.target?.id === 'fotografiaAnaliseLeite') {
+        loadMilkOcr()
+      }
+    }, true)
+  </script>
 
   <script>
     if ('serviceWorker' in navigator) {
