@@ -1,7 +1,11 @@
 const FARM_ID = '72bb5d54-f614-4394-8da9-7113a8e48a29'
+const REFRESH_INTERVAL_MS = 30000
 
 let lastAnalysisKey = ''
+let lastAnalysis = null
+let lastFetchAt = 0
 let requestInFlight = false
+let scheduled = false
 
 function formatNumber(value, decimals = 0) {
   if (value === null || value === undefined || value === '') return '—'
@@ -31,11 +35,45 @@ function updateRow(card, label, value) {
   if (strong) strong.textContent = value
 }
 
+function applyAnalysis(card, data) {
+  if (!card || !data) return
+
+  const analysisKey = `${data.id || ''}:${data.analysis_date || ''}`
+  if (analysisKey === lastAnalysisKey && card.dataset.qualitySynced === analysisKey) return
+
+  updateRow(card, 'Gordura', `${formatNumber(data.fat, 2)}%`)
+  updateRow(card, 'Proteína', `${formatNumber(data.protein, 2)}%`)
+  updateRow(card, 'Células somáticas', formatNumber(data.somatic_cells, 0))
+  updateRow(card, 'UFC', formatNumber(data.cfu, 0))
+
+  card.dataset.qualitySynced = analysisKey
+  lastAnalysisKey = analysisKey
+
+  let source = card.querySelector('[data-quality-source]')
+  if (!source) {
+    source = document.createElement('p')
+    source.className = 'muted'
+    source.dataset.qualitySource = 'latest-analysis'
+    source.style.marginBottom = '0'
+    card.appendChild(source)
+  }
+
+  source.textContent = data.analysis_date
+    ? `Última análise: ${data.analysis_date.split('-').reverse().join('/')}`
+    : 'Valores da última análise do leite'
+}
+
 async function syncLatestAnalysis() {
   const card = productionQualityCard()
   const supabase = window.lavouraSupabase
 
   if (!card || !supabase || requestInFlight) return
+
+  const now = Date.now()
+  if (lastAnalysis && now - lastFetchAt < REFRESH_INTERVAL_MS) {
+    applyAnalysis(card, lastAnalysis)
+    return
+  }
 
   requestInFlight = true
 
@@ -48,47 +86,32 @@ async function syncLatestAnalysis() {
       .limit(1)
       .maybeSingle()
 
+    lastFetchAt = Date.now()
     if (error || !data) return
 
-    const analysisKey = `${data.id || ''}:${data.analysis_date || ''}`
-    if (analysisKey === lastAnalysisKey && card.dataset.qualitySynced === analysisKey) return
-
-    updateRow(card, 'Gordura', `${formatNumber(data.fat, 2)}%`)
-    updateRow(card, 'Proteína', `${formatNumber(data.protein, 2)}%`)
-    updateRow(card, 'Células somáticas', formatNumber(data.somatic_cells, 0))
-    updateRow(card, 'UFC', formatNumber(data.cfu, 0))
-
-    card.dataset.qualitySynced = analysisKey
-    lastAnalysisKey = analysisKey
-
-    let source = card.querySelector('[data-quality-source]')
-    if (!source) {
-      source = document.createElement('p')
-      source.className = 'muted'
-      source.dataset.qualitySource = 'latest-analysis'
-      source.style.marginBottom = '0'
-      card.appendChild(source)
-    }
-
-    source.textContent = data.analysis_date
-      ? `Última análise: ${data.analysis_date.split('-').reverse().join('/')}`
-      : 'Valores da última análise do leite'
+    lastAnalysis = data
+    applyAnalysis(card, data)
   } finally {
     requestInFlight = false
   }
 }
 
-const observer = new MutationObserver(() => {
-  void syncLatestAnalysis()
-})
+function scheduleSync() {
+  if (scheduled) return
+  scheduled = true
+  queueMicrotask(() => {
+    scheduled = false
+    void syncLatestAnalysis()
+  })
+}
+
+const observer = new MutationObserver(scheduleSync)
 
 observer.observe(document.documentElement, {
   childList: true,
   subtree: true
 })
 
-window.addEventListener('load', () => {
-  void syncLatestAnalysis()
-})
+window.addEventListener('load', scheduleSync)
 
-void syncLatestAnalysis()
+scheduleSync()
