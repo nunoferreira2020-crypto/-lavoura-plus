@@ -7,7 +7,21 @@ function polar(cx,cy,r,deg){const a=(deg-90)*Math.PI/180;return{x:cx+r*Math.cos(
 function arcPath(cx,cy,r,start,end){const a=polar(cx,cy,r,end),b=polar(cx,cy,r,start),large=end-start<=180?0:1;return`M ${b.x} ${b.y} A ${r} ${r} 0 ${large} 1 ${a.x} ${a.y}`}
 function svgEl(tag,attrs={}){const el=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));return el}
 function latestByType(events,type){return events.filter(e=>e.event_type===type).sort((a,b)=>String(b.event_date||'').localeCompare(String(a.event_date||'')))[0]||null}
-function stageFor(ia,animal){const d=ia?.event_date?daysBetween(ia.event_date,todayISO()):null;if(animal?.status==='SECA')return{key:'dry',label:'SECA',color:'#34a853'};if(ia?.result&&String(ia.result).toLowerCase().includes('vazia'))return{key:'red',label:'VAZIA',color:'#e53935'};if(d===null)return{key:'red',label:'SEM IA',color:'#9aa0a6'};if(d<30)return{key:'recent',label:'IA RECENTE',color:'#f4c20d'};if(d<90)return{key:'diag',label:'DIAGNÓSTICO',color:'#f39c12'};if(d<223)return{key:'preg',label:'PRENHE',color:'#2f80ed'};return{key:'red',label:'PRÉ-PARTO',color:'#e53935'}}
+function stageFor(ia,animal){
+ const status=String(animal?.status||'').trim().toUpperCase()
+ const result=String(ia?.result||'').trim().toLowerCase()
+ const d=ia?.event_date?daysBetween(ia.event_date,todayISO()):null
+ if(status==='SECA')return{key:'dry',label:'SECA',color:'#34a853'}
+ if(status==='VAZIA'||result.includes('vazia')||result.includes('negativ'))return{key:'red',label:'VAZIA',color:'#e53935'}
+ if(result.includes('prenhe')||result.includes('positiv')){
+  const toCalving=ia?.expected_calving?daysBetween(todayISO(),ia.expected_calving):9999
+  if(toCalving<=21)return{key:'red',label:'PRÉ-PARTO',color:'#e53935'}
+  return{key:'preg',label:'PRENHE',color:'#2f80ed'}
+ }
+ if(d===null)return{key:'red',label:'SEM IA',color:'#9aa0a6'}
+ if(d<30)return{key:'recent',label:'IA RECENTE',color:'#f4c20d'}
+ return{key:'diag',label:'DIAGNÓSTICO',color:'#f39c12'}
+}
 const SECTORS={recent:[220,266],diag:[266,300],preg:[300,420],dry:[60,125],red:[125,220]}
 async function loadWheelData(){const sb=window.lavouraSupabase;if(!sb)return[];const{data:animals,error:aErr}=await sb.from('animals').select('id,number,name,status').eq('farm_id',FARM_ID);if(aErr||!animals?.length)return[];const ids=animals.map(a=>a.id);const{data:events,error:eErr}=await sb.from('reproduction').select('animal_id,event_type,event_date,result,expected_dry_off,expected_calving').eq('farm_id',FARM_ID).in('animal_id',ids);if(eErr)return[];return animals.map(a=>{const ev=(events||[]).filter(e=>e.animal_id===a.id),ia=latestByType(ev,'IA'),dry=latestByType(ev,'SECAGEM'),calving=latestByType(ev,'PARTO');return{animal:a,ia,dry,calving,stage:stageFor(ia,a)}}).filter(x=>x.ia||x.dry||x.calving)}
 function showInfo(host,item){let box=host.querySelector('.rw-info');if(!box){box=document.createElement('div');box.className='rw-info';host.appendChild(box)}box.innerHTML=`<button type="button" class="rw-close">×</button><strong>🐄 ${item.animal.name||item.animal.number}</strong><div>Brinco: ${item.animal.number}</div><div>${item.stage.label}</div><div>IA: ${datePT(item.ia?.event_date)}</div><div>Secagem prevista: ${datePT(item.ia?.expected_dry_off)}</div><div>Parto previsto: ${datePT(item.ia?.expected_calving)}</div>`;box.querySelector('.rw-close').onclick=()=>box.remove()}
