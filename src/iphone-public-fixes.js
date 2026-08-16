@@ -1,3 +1,5 @@
+import './delete-cow.js'
+
 const STYLE_ID = 'iphone-public-fixes-style'
 
 function ensureIphoneSafeArea() {
