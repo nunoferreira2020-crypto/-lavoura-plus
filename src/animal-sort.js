@@ -13,33 +13,22 @@ function showDryOff(card,date){rememberMeta(card);const node=metaTextNode(card);
 async function sortCards(select,list){
  const all=cards(list);if(!all.length)return
  all.forEach(rememberMeta)
-
- if(select.value==='name'){
-  all.forEach(restoreMeta)
-  all.sort((a,b)=>nameOf(a).localeCompare(nameOf(b),'pt',{sensitivity:'base'}));all.forEach(x=>list.appendChild(x));return
- }
- if(select.value===''){
-  all.forEach(restoreMeta)
-  all.sort((a,b)=>Number(numberOf(a)||Number.MAX_SAFE_INTEGER)-Number(numberOf(b)||Number.MAX_SAFE_INTEGER));all.forEach(x=>list.appendChild(x));return
- }
-
+ if(select.value==='name'){all.forEach(restoreMeta);all.sort((a,b)=>nameOf(a).localeCompare(nameOf(b),'pt',{sensitivity:'base'}));all.forEach(x=>list.appendChild(x));return}
+ if(select.value===''){all.forEach(restoreMeta);all.sort((a,b)=>Number(numberOf(a)||Number.MAX_SAFE_INTEGER)-Number(numberOf(b)||Number.MAX_SAFE_INTEGER));all.forEach(x=>list.appendChild(x));return}
  const sb=window.lavouraSupabase;if(!sb)return
  const numbers=all.map(numberOf).filter(Boolean)
  const {data:animals}=await sb.from('animals').select('id,number,status').eq('farm_id',FARM_ID).in('number',numbers)
  const ids=(animals||[]).map(a=>a.id);if(!ids.length)return
  const {data:events}=await sb.from('reproduction').select('animal_id,event_type,event_date,expected_dry_off').eq('farm_id',FARM_ID).in('animal_id',ids)
- const byNumber=new Map((animals||[]).map(a=>[String(a.number),a]));const dates=new Map();const today=new Date().toISOString().slice(0,10)
-
+ const byNumber=new Map((animals||[]).map(a=>[String(a.number),a]));const dates=new Map()
  for(const c of all){
   const animal=byNumber.get(numberOf(c));const ev=(events||[]).filter(e=>e.animal_id===animal?.id)
+  const latestIA=ev.filter(e=>e.event_type==='IA').sort((a,b)=>String(b.event_date).localeCompare(String(a.event_date)))[0]
   if(select.value==='ia'){
-   restoreMeta(c)
-   const ia=ev.filter(e=>e.event_type==='IA').sort((a,b)=>String(b.event_date).localeCompare(String(a.event_date)))[0]
-   dates.set(c,ia?.event_date||'9999-12-31')
+   restoreMeta(c);dates.set(c,latestIA?.event_date||'9999-12-31')
   } else if(select.value==='dry'){
-   const future=ev.filter(e=>e.event_type==='IA'&&e.expected_dry_off&&e.expected_dry_off>=today).sort((a,b)=>String(a.expected_dry_off).localeCompare(String(b.expected_dry_off)))[0]
-   dates.set(c,future?.expected_dry_off||'9999-12-31')
-   if(future?.expected_dry_off)showDryOff(c,future.expected_dry_off);else restoreMeta(c)
+   dates.set(c,latestIA?.expected_dry_off||'9999-12-31')
+   if(latestIA?.expected_dry_off)showDryOff(c,latestIA.expected_dry_off);else restoreMeta(c)
   }
  }
  all.sort((a,b)=>String(dates.get(a)||'9999-12-31').localeCompare(String(dates.get(b)||'9999-12-31')));all.forEach(x=>list.appendChild(x))
