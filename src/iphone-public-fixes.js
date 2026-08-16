@@ -1,4 +1,5 @@
 import './delete-cow.js'
+import './animal-exit.js'
 
 const STYLE_ID = 'iphone-public-fixes-style'
 
