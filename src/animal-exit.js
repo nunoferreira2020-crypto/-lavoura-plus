@@ -1,69 +1,51 @@
-import { supabase } from './supabase.js'
+const FARM_ID='72bb5d54-f614-4394-8da9-7113a8e48a29'
+const REASONS=['Morte','Venda','Abate','Outro']
 
-const REASONS = ['Morte', 'Venda', 'Abate', 'Outro']
-
-function currentAnimal() {
-  const heading = document.querySelector('main.app h1')
-  const info = [...document.querySelectorAll('main.app .card')].find(card => card.textContent.includes('Informação'))
-  if (!heading || !info) return null
-  const match = info.textContent.match(/Número\s+([^\s]+)/i)
-  const number = match?.[1]?.trim()
-  if (!number) return null
-  return { number, heading: heading.textContent.trim() }
+function currentAnimal(){
+  const main=document.querySelector('#app main')
+  if(!main)return null
+  const title=main.querySelector('h1')?.textContent||''
+  const match=title.match(/🐄\s*([^\s—]+)/)
+  if(!match)return null
+  const number=String(match[1]||'').trim()
+  const hasActions=main.querySelector('[data-action="inseminacao"], [data-action="parto"], [data-action="diagnostico"]')
+  return number&&hasActions?{number,title:title.trim()}:null
 }
 
-async function registerExit(animal) {
-  const reasonRaw = prompt(`Motivo da baixa de ${animal.heading}:\n\n1 - Morte\n2 - Venda\n3 - Abate\n4 - Outro\n\nEscreva 1, 2, 3 ou 4.`)
-  if (reasonRaw === null) return
-  const reason = REASONS[Number(reasonRaw) - 1]
-  if (!reason) return alert('Motivo inválido.')
-
-  const date = prompt('Data da baixa (AAAA-MM-DD):', new Date().toISOString().slice(0, 10))
-  if (date === null) return
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return alert('Data inválida. Use AAAA-MM-DD.')
-
-  const notes = prompt('Observações (opcional):', '')
-  if (notes === null) return
-
-  if (!confirm(`Registar ${animal.heading} como baixa por ${reason} em ${date}?\n\nO histórico será mantido.`)) return
-
-  const { data: membership, error: memberError } = await supabase
-    .from('farm_members').select('farm_id, role').limit(1).maybeSingle()
-  if (memberError || !membership?.farm_id) return alert('Não foi possível confirmar a exploração.')
-  if (!['owner', 'admin'].includes(String(membership.role || '').toLowerCase())) return alert('Sem permissão para registar baixas.')
-
-  const { data, error } = await supabase
-    .from('animals')
-    .update({ exit_date: date, exit_reason: reason, exit_notes: notes.trim() || null, status: 'Baixa' })
-    .eq('farm_id', membership.farm_id)
-    .eq('number', animal.number)
-    .select('id')
-    .maybeSingle()
-
-  if (error || !data) return alert('Não foi possível registar a baixa.')
-  alert(`Baixa registada: ${animal.heading} — ${reason}. O histórico foi mantido.`)
-  window.location.hash = '#animais'
-  window.location.reload()
+async function registerExit(animal){
+  const sb=window.lavouraSupabase
+  if(!sb){alert('Supabase indisponível.');return}
+  const choice=prompt(`Motivo da baixa de ${animal.title}:\n\n1 - Morte\n2 - Venda\n3 - Abate\n4 - Outro\n\nEscreva 1, 2, 3 ou 4.`)
+  if(choice===null)return
+  const reason=REASONS[Number(choice)-1]
+  if(!reason){alert('Motivo inválido.');return}
+  const date=prompt('Data da baixa (AAAA-MM-DD):',new Date().toISOString().slice(0,10))
+  if(date===null)return
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert('Data inválida. Use AAAA-MM-DD.');return}
+  const notes=prompt('Observações (opcional):','')
+  if(notes===null)return
+  if(!confirm(`Registar ${animal.title} como baixa por ${reason} em ${date}?\n\nO histórico será mantido.`))return
+  const {data,error}=await sb.from('animals')
+    .update({exit_date:date,exit_reason:reason,exit_notes:notes.trim()||null,status:'Baixa'})
+    .eq('farm_id',FARM_ID).eq('number',animal.number).select('id').maybeSingle()
+  if(error||!data){alert('Não foi possível registar a baixa.');return}
+  alert(`Baixa registada — ${reason}. O histórico foi mantido.`)
+  location.reload()
 }
 
-function mountExitButton() {
-  const animal = currentAnimal()
-  if (!animal || document.getElementById('animal-exit-button')) return
-  const records = [...document.querySelectorAll('main.app .card')].find(card => card.textContent.includes('Registos'))
-  if (!records) return
-  const button = document.createElement('button')
-  button.id = 'animal-exit-button'
-  button.type = 'button'
-  button.textContent = '📋 Registar baixa'
-  button.style.cssText = 'width:100%;margin-top:14px;padding:16px;border:1px solid #a56b16;border-radius:14px;background:#fff7e8;color:#7a4b08;font-weight:800;font-size:17px;'
-  button.addEventListener('click', () => registerExit(animal))
-  records.appendChild(button)
+function mountExitButton(){
+  const animal=currentAnimal()
+  const main=document.querySelector('#app main')
+  if(!animal||!main||main.querySelector('[data-animal-exit]'))return
+  const deleteCard=main.querySelector('[data-delete-cow-card]')
+  const card=document.createElement('section')
+  card.className='card'
+  card.dataset.animalExit='1'
+  card.innerHTML='<h2>📋 Baixa do animal</h2><p>Para morte, venda ou abate. A vaca sai do rebanho ativo, mas o histórico é mantido.</p><button type="button" data-register-exit style="width:100%;min-height:48px;font-weight:800">Registar baixa</button>'
+  card.querySelector('[data-register-exit]').addEventListener('click',()=>registerExit(animal))
+  if(deleteCard)main.insertBefore(card,deleteCard);else main.appendChild(card)
 }
 
 mountExitButton()
-let queued = false
-new MutationObserver(() => {
-  if (queued) return
-  queued = true
-  queueMicrotask(() => { queued = false; mountExitButton() })
-}).observe(document.body, { childList: true, subtree: true })
+let queued=false
+new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;mountExitButton()})}).observe(document.body,{childList:true,subtree:true})
