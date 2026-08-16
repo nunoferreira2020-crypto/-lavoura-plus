@@ -10,6 +10,8 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="Lavoura+" />
   <meta name="description" content="Gestão da exploração leiteira" />
+  <link rel="preconnect" href="https://oegbnvwwrudnskycgbdl.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://oegbnvwwrudnskycgbdl.supabase.co" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./lavoura-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./lavoura-icon.svg" />
@@ -19,13 +21,61 @@
 <body>
   <div id="app"></div>
 
-  <!-- Núcleo estável da aplicação. Módulos pesados são carregados apenas
-       quando necessários para reduzir trabalho de MutationObserver no iPhone. -->
+  <!-- Núcleo mínimo: abre primeiro para reduzir o tempo até a app responder no iPhone. -->
   <script type="module" src="/src/main.js?v=stable-1"></script>
   <script type="module" src="/src/auth-public-fixes.js?v=2"></script>
   <script type="module" src="/src/iphone-public-fixes.js?v=3"></script>
 
   <script type="module">
+    const deferredModules = [
+      '/src/production-quality-sync.js',
+      '/src/production-trends.js',
+      '/src/milk-insights.js',
+      '/src/pregnancy-labels.js',
+      '/src/reproductive-stage-v2.js',
+      '/src/postpartum-cycle.js',
+      '/src/postpartum-reproduction-summary-v2.js',
+      '/src/open-cow-reinsemination.js',
+      '/src/reproductive-summary.js',
+      '/src/reproductive-timeline.js',
+      '/src/herd-tools-v2.js',
+      '/src/health-tools.js',
+      '/src/health-dashboard.js',
+      '/src/farm-agenda.js',
+      '/src/feed-tools.js',
+      '/src/feed-dashboard.js',
+      '/src/cow-profile.js',
+      '/src/finance-insights.js',
+      '/src/finance-profit-chart.js',
+      '/src/finance-monthly-history.js',
+      '/src/rentability-sync.js',
+      '/src/reports-final.js',
+      '/src/dashboard-smart.js',
+      '/src/settings-security.js'
+    ]
+
+    let secondaryModulesPromise = null
+
+    function loadSecondaryModules() {
+      if (!secondaryModulesPromise) {
+        secondaryModulesPromise = Promise.all(
+          deferredModules.map(modulePath =>
+            import(modulePath).catch(error => {
+              console.error(`Módulo ${modulePath}:`, error)
+              return null
+            })
+          )
+        )
+      }
+      return secondaryModulesPromise
+    }
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(loadSecondaryModules, { timeout: 1200 })
+    } else {
+      window.setTimeout(loadSecondaryModules, 250)
+    }
+
     let milkOcrPromise = null
 
     function loadMilkOcr() {
