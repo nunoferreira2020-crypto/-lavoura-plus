@@ -20,6 +20,14 @@ function ensureIphoneSafeArea() {
       bottom: calc(10px + env(safe-area-inset-bottom));
     }
 
+    body.auth-flow-screen .bottom-nav {
+      display: none !important;
+    }
+
+    body.auth-flow-screen.com-bottom-nav {
+      padding-bottom: 0;
+    }
+
     .stats-grid,
     .filters,
     .filter-row,
@@ -63,4 +71,29 @@ function ensureIphoneSafeArea() {
   document.head.appendChild(style)
 }
 
+function syncAuthFlowScreen() {
+  const authInput = document.querySelector(
+    '#email, #password, #newPassword, #confirmPassword, #codigo2fa'
+  )
+
+  const title = document.querySelector('main.app h1, main.app h2')?.textContent || ''
+  const checkingSecurity = title.includes('verificar segurança') || title.includes('A verificar segurança')
+
+  document.body.classList.toggle(
+    'auth-flow-screen',
+    Boolean(authInput || checkingSecurity)
+  )
+}
+
 ensureIphoneSafeArea()
+syncAuthFlowScreen()
+
+let authSyncQueued = false
+new MutationObserver(() => {
+  if (authSyncQueued) return
+  authSyncQueued = true
+  queueMicrotask(() => {
+    authSyncQueued = false
+    syncAuthFlowScreen()
+  })
+}).observe(document.body, { childList: true, subtree: true })
