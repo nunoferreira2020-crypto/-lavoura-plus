@@ -5,7 +5,7 @@ const BALANCETE_2025 = Object.freeze({
   sales: 109099.08,
   subsidies: 18191.43,
   otherIncome: 504.33,
-  estimatedResult: 48246.74,
+  accountingResult: 48246.74,
   bankBalance: 309028.64,
   suppliersPayable: 4782.78,
   salesBreakdown: [
@@ -15,11 +15,11 @@ const BALANCETE_2025 = Object.freeze({
   ],
   expenseBreakdown: [
     ['Rações', 39832.09],
-    ['Fertilizantes para solos', 10944.69],
-    ['Rendas e alugueres', 5530.00],
+    ['Fertilizantes para solos / adubos', 10944.69],
+    ['Renda das terras', 5530.00],
     ['Trabalhos especializados', 4999.69],
-    ['Gasóleo / energia e fluidos', 3857.37],
     ['Outros serviços especializados', 3906.32],
+    ['Gasóleo', 3857.37],
     ['Segurança Social / pessoal', 2773.76],
     ['Conservação e reparação', 1987.19],
     ['Medicamentos', 1532.77],
@@ -28,9 +28,10 @@ const BALANCETE_2025 = Object.freeze({
     ['Quotizações', 564.41],
     ['Fitofarmacêuticos', 481.81],
     ['Depreciações e amortizações', 243.87],
-    ['Materiais (líquido)', 184.49],
+    ['Materiais', 184.49],
     ['Limpeza, higiene e conforto', 172.94],
-    ['Outros serviços', 42.31]
+    ['Outros serviços', 42.31],
+    ['Impostos indiretos', 37.31]
   ]
 })
 
@@ -59,40 +60,53 @@ function lineRows(items, total = null) {
 
 function cardHtml() {
   const marginPct = BALANCETE_2025.revenue > 0
-    ? BALANCETE_2025.estimatedResult / BALANCETE_2025.revenue * 100
+    ? BALANCETE_2025.accountingResult / BALANCETE_2025.revenue * 100
     : 0
+
+  const monthlyRevenue = BALANCETE_2025.revenue / 12
+  const monthlyExpenses = BALANCETE_2025.expenses / 12
+  const monthlyResult = BALANCETE_2025.accountingResult / 12
 
   return `
     <section class="card finance-balancete-2025" data-finance-balancete="2025">
-      <h2>📒 Balancete 2025</h2>
-      <p class="muted">Valores acumulados do balancete contabilístico de final de 2025.</p>
+      <h2>📒 Real 2025 — Balancete</h2>
+      <p class="muted">Valores reais contabilizados no balancete acumulado de final de 2025. Esta secção é separada do orçamento/estimativas atuais para evitar contar custos duas vezes.</p>
 
-      <div class="detail-row"><span>Rendimentos</span><strong>${euro(BALANCETE_2025.revenue)}</strong></div>
-      <div class="detail-row"><span>Gastos</span><strong>${euro(BALANCETE_2025.expenses)}</strong></div>
-      <div class="detail-row"><span>Diferença rendimentos − gastos</span><strong>${euro(BALANCETE_2025.estimatedResult)}</strong></div>
+      <div class="detail-row"><span>Rendimentos reais 2025</span><strong>${euro(BALANCETE_2025.revenue)}</strong></div>
+      <div class="detail-row"><span>Gastos reais 2025</span><strong>${euro(BALANCETE_2025.expenses)}</strong></div>
+      <div class="detail-row"><span>Resultado contabilístico 2025</span><strong>${euro(BALANCETE_2025.accountingResult)}</strong></div>
       <div class="detail-row"><span>Margem sobre rendimentos</span><strong>${percent(marginPct)}</strong></div>
 
       <details>
-        <summary><strong>Ver receitas de 2025</strong></summary>
+        <summary><strong>Média mensal de 2025</strong></summary>
+        <div class="detail-row"><span>Rendimentos/mês</span><strong>${euro(monthlyRevenue)}</strong></div>
+        <div class="detail-row"><span>Gastos/mês</span><strong>${euro(monthlyExpenses)}</strong></div>
+        <div class="detail-row"><span>Resultado/mês</span><strong>${euro(monthlyResult)}</strong></div>
+      </details>
+
+      <details open>
+        <summary><strong>Todos os gastos reais de 2025</strong></summary>
+        ${lineRows(BALANCETE_2025.expenseBreakdown, BALANCETE_2025.expenses)}
+        <div class="detail-row"><span><strong>Total de gastos</strong></span><strong>${euro(BALANCETE_2025.expenses)}</strong></div>
+        <p class="muted">As rubricas acima foram organizadas pelas contas de gasto do balancete sem somar subcontas duplicadas. O total fecha nos ${euro(BALANCETE_2025.expenses)}.</p>
+      </details>
+
+      <details>
+        <summary><strong>Receitas reais de 2025</strong></summary>
         <div class="detail-row"><span>Vendas</span><strong>${euro(BALANCETE_2025.sales)}</strong></div>
         ${lineRows(BALANCETE_2025.salesBreakdown, BALANCETE_2025.sales)}
         <div class="detail-row"><span>Subsídios à exploração</span><strong>${euro(BALANCETE_2025.subsidies)}</strong></div>
         <div class="detail-row"><span>Outros rendimentos e ganhos</span><strong>${euro(BALANCETE_2025.otherIncome)}</strong></div>
+        <div class="detail-row"><span><strong>Total de rendimentos</strong></span><strong>${euro(BALANCETE_2025.revenue)}</strong></div>
       </details>
 
       <details>
-        <summary><strong>Ver principais gastos de 2025</strong></summary>
-        ${lineRows(BALANCETE_2025.expenseBreakdown, BALANCETE_2025.expenses)}
-        <p class="muted">Os valores acima reproduzem as rubricas visíveis no balancete; algumas linhas são subcontas e não devem ser somadas novamente ao total de gastos.</p>
-      </details>
-
-      <details>
-        <summary><strong>Ver posição financeira</strong></summary>
+        <summary><strong>Posição financeira no balancete</strong></summary>
         <div class="detail-row"><span>Caixa Geral de Depósitos — saldo devedor</span><strong>${euro(BALANCETE_2025.bankBalance)}</strong></div>
         <div class="detail-row"><span>Fornecedores — saldo credor</span><strong>${euro(BALANCETE_2025.suppliersPayable)}</strong></div>
       </details>
 
-      <p class="muted">A diferença de ${euro(BALANCETE_2025.estimatedResult)} é calculada na app como rendimentos menos gastos. Não substitui o resultado fiscal apurado pelo contabilista.</p>
+      <p class="muted">Resultado contabilístico = rendimentos − gastos. Não representa necessariamente dinheiro disponível na conta nem substitui o apuramento fiscal do contabilista.</p>
     </section>`
 }
 
