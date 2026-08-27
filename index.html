@@ -20,7 +20,7 @@
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./src/main.js?v=stable-1"></script>
+  <script type="module" src="./src/main.js?v=stable-2"></script>
   <script type="module" src="./src/auth-public-fixes.js?v=2"></script>
   <script type="module" src="./src/iphone-public-fixes.js?v=3"></script>
   <script type="module" src="./src/reproduction-wheel.js?v=embrapa-3"></script>
@@ -36,7 +36,17 @@
     document.addEventListener('focusin',event=>{if(event.target?.id==='fotografiaAnaliseLeite')loadMilkOcr()},true)
   </script>
   <script>
-    if('serviceWorker' in navigator){window.addEventListener('load',()=>{const serviceWorkerUrl=new URL('./sw.js',window.location.href);navigator.serviceWorker.register(serviceWorkerUrl).catch(error=>console.error('Service Worker:',error))})}
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',async()=>{
+        try{
+          const serviceWorkerUrl=new URL('./sw.js',window.location.href)
+          const registration=await navigator.serviceWorker.register(serviceWorkerUrl,{updateViaCache:'none'})
+          registration.update().catch(()=>{})
+        }catch(error){
+          console.error('Service Worker:',error)
+        }
+      })
+    }
   </script>
 </body>
 </html>
