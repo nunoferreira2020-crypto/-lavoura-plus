@@ -33,30 +33,40 @@ function apply(){
   const main=document.querySelector('#app main')
   const list=main?.querySelector('#animalList')
   const search=main?.querySelector('#animalSearch')
-  const tools=main?.querySelector('.herd-tools')
-  if(!list||!search||!tools)return
+  if(!list||!search)return
   const cards=[...list.querySelectorAll('.cow-card')]
   if(active){
     cards.sort((a,b)=>daysUntil(dateByNumber.get(cowNumber(a)))-daysUntil(dateByNumber.get(cowNumber(b))))
-    let visible=0
     const term=normalize(search.value)
     for(const card of cards){
       list.appendChild(card)
       const number=cowNumber(card)
       const show=dateByNumber.has(number)&&(!term||normalize(card.innerText).includes(term))
       card.style.display=show?'':'none'
-      if(show)visible++
     }
-    const counter=tools.querySelector('.herd-result-count')
-    if(counter)counter.textContent=`${visible} animal${visible===1?'':'ais'} visível${visible===1?'':'eis'}`
+  }else{
+    for(const card of cards)card.style.display=''
   }
+}
+
+function ensureRow(main,search){
+  let row=main.querySelector('.herd-filter-row')
+  if(row)return row
+  row=document.createElement('div')
+  row.className='herd-filter-row'
+  row.style.cssText='display:flex;gap:8px;overflow-x:auto;margin:10px 0 14px;padding-bottom:2px'
+  const card=search.closest('.card')
+  if(card)card.insertBefore(row,search.nextSibling)
+  else search.insertAdjacentElement('afterend',row)
+  return row
 }
 
 async function enhance(){
   const main=document.querySelector('#app main')
-  const row=main?.querySelector('.herd-filter-row')
   const search=main?.querySelector('#animalSearch')
-  if(!row||!search)return
+  const list=main?.querySelector('#animalList')
+  if(!main||!search||!list)return
+  const row=ensureRow(main,search)
   if(!ready){await loadDates();ready=true}
   if(!row.querySelector('[data-next-calving]')){
     const button=document.createElement('button')
@@ -64,16 +74,15 @@ async function enhance(){
     button.className='herd-filter'
     button.dataset.nextCalving='1'
     button.textContent='📅 Próxima parição'
+    button.style.cssText='flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:12px'
     row.appendChild(button)
     button.addEventListener('click',event=>{
       event.preventDefault()
-      active=true
-      row.querySelectorAll('.herd-filter').forEach(x=>x.classList.toggle('active',x===button))
+      active=!active
+      button.classList.toggle('active',active)
+      button.setAttribute('aria-pressed',String(active))
       apply()
     })
-    row.addEventListener('click',event=>{
-      if(event.target.closest('[data-filter]'))active=false
-    },true)
     search.addEventListener('input',()=>{if(active)queueMicrotask(apply)},true)
   }
 }
