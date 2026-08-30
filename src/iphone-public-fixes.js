@@ -1,5 +1,6 @@
 import './delete-cow.js'
 import './animal-sort.js'
+import './next-calving-filter.js'
 
 const STYLE_ID = 'iphone-public-fixes-style'
 
